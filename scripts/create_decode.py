@@ -324,6 +324,6 @@ assert(check_duplicates())
 for i in range(len(instructions)):
     (name,mode) = instructions[i]
     if name == None:
-        print("\"invalid\",")
+        print("{ \"INVALID\", CPU::AddressMode::IMPLICIT },")
     else:
-        print("\"" + name + " " + mode + "\",")
+        print("{ \"" + name + "\", CPU::AddressMode::" + mode + " },")

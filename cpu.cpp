@@ -1,5 +1,5 @@
 #include <array>
-#include <assert.h>
+#include <cassert>
 #include <iostream>
 #include <iomanip>
 #include <stdexcept>
@@ -18,7 +18,6 @@ namespace Emulator {
 
     CPU::CPU(std::shared_ptr<Memory> t_memory, Address t_programCounter)
         : m_memory(t_memory)
-        , m_breakpoints()
         , m_pc(t_programCounter)
         , m_sp(0x00)
         , m_acc(0x00)
@@ -309,23 +308,12 @@ namespace Emulator {
         const Word opcode = m_memory->readWord(m_pc);
         const InstructionInfo info = INSTRUCTION_TABLE[opcode];
 
+        // TODO: change to assert
         if (info.instruction == nullptr) {
             printRegisters();
             throw std::exception();
         }
         
-        static bool ignoreBreak = false;
-        if (m_breakpoints.contains(m_pc) && !ignoreBreak) {
-            std::cout << "BREAKPOINT\n";
-            printRegisters();
-            ignoreBreak = true;
-
-            return true;
-        }
-        else {
-            ignoreBreak = false;
-        }
-
         // call the function obtained from the table
         (this->*info.instruction)(info.addressMode);
         return false;

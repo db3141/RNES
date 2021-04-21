@@ -1,3 +1,4 @@
+#include <cassert>
 #include <fstream>
 
 #include "ram.hpp"
@@ -10,10 +11,7 @@ namespace Emulator {
 
     RAM::RAM(const char* t_path) : m_ram() {
         std::ifstream fileStream(t_path, std::ios::binary | std::ios::in);
-        if (!fileStream.is_open()) {
-            throw std::exception();
-        }
-
+        assert(fileStream.is_open());
         fileStream.read(reinterpret_cast<char*>(m_ram.data()), ADDRESS_SPACE_SIZE);
     }
 

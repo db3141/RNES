@@ -10,14 +10,11 @@
 
 namespace Emulator {
 
-    class CPU;
-
-    void cpuDebug(CPU& t_cpu);
+    class CPUDebugger;
 
     class CPU {
     public:
-        friend void cpuDebug(CPU& t_cpu);
-        friend void handleSimpleCommand(CPU& t_cpu, char t_c);
+        friend CPUDebugger;
 
         CPU(std::shared_ptr<Memory> t_memory, Address t_programCounter=0x0000U);
 
@@ -91,8 +88,6 @@ namespace Emulator {
         Word m_y;
         Word m_st;
 
-        std::set<Address> m_breakpoints;
-
         //----- Private methods -----//
         void clock();
 
@@ -106,10 +101,10 @@ namespace Emulator {
 
         //----- Stack -----//
         void stackPushWord(Word t_word);
-        [[nodiscard]] Word stackPopWord();
+        Word stackPopWord();
 
         void stackPushDWord(Word t_dword);
-        [[nodiscard]] DWord stackPopDWord();
+        DWord stackPopDWord();
 
 
         //----- Instructions -----//

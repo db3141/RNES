@@ -3,13 +3,15 @@
 #include <string>
 
 #include "cpu.hpp"
+#include "cpu_debugger.hpp"
 #include "ram.hpp"
 
 int main(int argc, char* argv[]) {
-    auto ramController = std::make_shared<Emulator::RAM>("6502_functional_test.bin");
+    auto ramController = std::make_shared<Emulator::RAM>("tests/6502_functional_test.bin");
     Emulator::CPU cpu(ramController, 0x0400U);
 
-    Emulator::cpuDebug(cpu);
+    Emulator::CPUDebugger debugger(cpu);
+    debugger.start();
 
     return 0;
 }
