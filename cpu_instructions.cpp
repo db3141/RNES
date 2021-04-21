@@ -233,7 +233,7 @@ namespace Emulator {
         const Word result = v1 - v2;
 
         setFlag(StatusFlag::CARRY, v1 >= v2);
-        setFlag(StatusFlag::ZERO, v1 == 0);
+        setFlag(StatusFlag::ZERO, v1 == v2);
         setFlag(StatusFlag::NEGATIVE, result & 0x80U);
 
         m_pc += instructionSize(t_addressMode);
@@ -246,7 +246,7 @@ namespace Emulator {
         const Word result = v1 - v2;
 
         setFlag(StatusFlag::CARRY, v1 >= v2);
-        setFlag(StatusFlag::ZERO, v1 == 0);
+        setFlag(StatusFlag::ZERO, v1 == v2);
         setFlag(StatusFlag::NEGATIVE, result & 0x80U);
 
         m_pc += instructionSize(t_addressMode);
@@ -259,7 +259,7 @@ namespace Emulator {
         const Word result = v1 - v2;
 
         setFlag(StatusFlag::CARRY, v1 >= v2);
-        setFlag(StatusFlag::ZERO, v1 == 0);
+        setFlag(StatusFlag::ZERO, v1 == v2);
         setFlag(StatusFlag::NEGATIVE, result & 0x80U);
 
         m_pc += instructionSize(t_addressMode);
