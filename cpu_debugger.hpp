@@ -31,6 +31,7 @@ namespace Emulator {
 
         CommandReturnCode commandSetBreakpoint(const std::vector<std::string>& t_args);
         CommandReturnCode commandRemoveBreakpoint(const std::vector<std::string>& t_args);
+        CommandReturnCode commandListBreakpoints(const std::vector<std::string>& t_args);
 
         using Command = CommandReturnCode (CPUDebugger::*)(const std::vector<std::string>&);
 

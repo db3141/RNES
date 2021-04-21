@@ -27,7 +27,6 @@ namespace Emulator {
         
         while (!done) {
             std::cout << "[0x" << std::hex << std::setw(4) << std::setfill('0') << m_cpu.m_pc << "]> ";
-//            std::cout << "Got here\n";
 
             std::string userInput;
             std::getline(std::cin, userInput);
@@ -69,9 +68,12 @@ namespace Emulator {
 
             { "db"          , &CPUDebugger::commandRemoveBreakpoint },
             { "deletebreak" , &CPUDebugger::commandRemoveBreakpoint },
+
+            { "lb"          , &CPUDebugger::commandListBreakpoints },
+            { "listbreaks"  , &CPUDebugger::commandListBreakpoints },
         }; 
 
-        std::cout << "Command: " << t_command << " (" << t_command.length() << ")\n";
+        //std::cout << "Command: " << t_command << " (" << t_command.length() << ")\n";
         if (t_command.length() == 0) {
             if (m_lastCommand.length() == 0) {
                 return CommandReturnCode::OKAY;
@@ -114,10 +116,12 @@ namespace Emulator {
         bool done = false;
         while (!done) {
             if (m_cpu.executeInstruction()) {
+                std::cout << "CPU halt\n";
                 return CommandReturnCode::HALT;
             }
             done = m_breakpoints.contains(m_cpu.m_pc);
         };
+        std::cout << "Hit breakpoint\n";
         return CommandReturnCode::OKAY;
     }
 
@@ -505,6 +509,20 @@ namespace Emulator {
         return CommandReturnCode::ERROR;
     }
 
+    CPUDebugger::CommandReturnCode CPUDebugger::commandListBreakpoints(const std::vector<std::string>& t_args) {
+        if (m_breakpoints.empty()) {
+            std::cout << "No breakpoints are currently set\n";
+            return CommandReturnCode::OKAY;   
+        }
+
+        std::cout << "\nBreakpoints\n-----------\n";
+        for (Address breakpoint : m_breakpoints) {
+            std::cout << "0x" << std::hex << std::setw(4) << std::setfill('0') << breakpoint << '\n';
+        }
+        std::cout << '\n';
+        return CommandReturnCode::OKAY;
+    }
+
     std::vector<std::string> splitString(const std::string& t_string, char t_delimiter) {
         std::vector<std::string> tokens;
 
@@ -526,13 +544,12 @@ namespace Emulator {
 
     bool stringToAddress(const std::string& t_string, Address& r_address) {
         try {
-            r_address = std::stoul(t_string, nullptr, 10);
-            return true;
-        }
-        catch (std::invalid_argument& e) {}
-
-        try {
-            r_address = std::stoul(t_string, nullptr, 16);
+            if (t_string.starts_with("0x")) {
+                r_address = std::stoul(t_string, nullptr, 16);
+            }
+            else {
+                r_address = std::stoul(t_string, nullptr, 10);
+            }
             return true;
         }
         catch (std::invalid_argument& e) {
