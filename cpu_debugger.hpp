@@ -33,7 +33,11 @@ namespace Emulator {
         CommandReturnCode commandRemoveBreakpoint(const std::vector<std::string>& t_args);
         CommandReturnCode commandListBreakpoints(const std::vector<std::string>& t_args);
 
+        CommandReturnCode commandDisassembleInstructions(const std::vector<std::string>& t_args);
+
         using Command = CommandReturnCode (CPUDebugger::*)(const std::vector<std::string>&);
+
+        size_t printDisassembledInstruction(Address t_address) const;
 
         CPU& m_cpu;
         std::unordered_set<Address> m_breakpoints;

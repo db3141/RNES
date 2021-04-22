@@ -122,7 +122,8 @@ namespace Emulator {
 	}
 
     void CPU::instructionPHP(AddressMode t_addressMode) {
-        stackPushWord(m_st);
+        const Word value = m_st | Word(StatusFlag::B1) | Word(StatusFlag::B2);
+        stackPushWord(value);
         m_pc += instructionSize(t_addressMode);
 	}
 

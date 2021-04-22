@@ -12,7 +12,7 @@
 namespace Emulator {
 
     std::vector<std::string> splitString(const std::string& t_string, char t_delimiter); 
-    bool stringToAddress(const std::string& t_string, Address& r_address);
+    bool stringToDWord(const std::string& t_string, Address& r_address);
 
     CPUDebugger::CPUDebugger(CPU& t_cpu)
         : m_cpu(t_cpu) 
@@ -32,15 +32,15 @@ namespace Emulator {
             std::getline(std::cin, userInput);
 
             switch (executeCommand(userInput)) {
-            case CommandReturnCode::OKAY:
-                break;
-            case CommandReturnCode::ERROR:
-                break;
-            case CommandReturnCode::HALT:
-                done = true;
-                break;
-            default:
-                assert(("shouldn't be here", false));
+                case CommandReturnCode::OKAY:
+                    break;
+                case CommandReturnCode::ERROR:
+                    break;
+                case CommandReturnCode::HALT:
+                    done = true;
+                    break;
+                default:
+                    assert(("shouldn't be here", false));
             }
         }    
     }
@@ -71,7 +71,10 @@ namespace Emulator {
 
             { "lb"          , &CPUDebugger::commandListBreakpoints },
             { "listbreaks"  , &CPUDebugger::commandListBreakpoints },
-        }; 
+
+            { "d"           , &CPUDebugger::commandDisassembleInstructions },
+            { "disassemble" , &CPUDebugger::commandDisassembleInstructions },
+        };
 
         //std::cout << "Command: " << t_command << " (" << t_command.length() << ")\n";
         if (t_command.length() == 0) {
@@ -126,10 +129,147 @@ namespace Emulator {
     }
 
     CPUDebugger::CommandReturnCode CPUDebugger::commandDecodeCurrentInstruction(const std::vector<std::string>& t_args) {
+        printDisassembledInstruction(m_cpu.m_pc);
+        return CommandReturnCode::OKAY;
+    }
+
+    CPUDebugger::CommandReturnCode CPUDebugger::commandPrintRegisters(const std::vector<std::string>& t_args) {
+        // TODO: implement this here instead of in CPU
+        m_cpu.printRegisters();
+        return CommandReturnCode::OKAY;
+    }
+
+    CPUDebugger::CommandReturnCode CPUDebugger::commandQuit(const std::vector<std::string>& t_args) {
+        std::cout << "Do you really want to quit? (y/n)\n";
+        std::string input;
+        std::getline(std::cin, input);
+        while (input != "y" && input != "n") {
+            std::cout << "Please enter either 'y' or 'n'\n";
+            std::getline(std::cin, input);
+        }
+
+        if (input == "y") {
+            return CommandReturnCode::HALT;
+        }
+        else {
+            return CommandReturnCode::OKAY;
+        }
+    }
+
+    CPUDebugger::CommandReturnCode CPUDebugger::commandSetBreakpoint(const std::vector<std::string>& t_args) {
+        if (t_args.size() != 1) {
+            std::cerr << "This command takes 1 argument\n";
+            return CommandReturnCode::ERROR;
+        }
+
+        Address breakpointAddress = 0;
+        if (!stringToDWord(t_args[0], breakpointAddress)) {
+            std::cerr << "Argument is not a valid address\n";
+            return CommandReturnCode::ERROR;
+        }
+
+        m_breakpoints.insert(breakpointAddress);
+        std::cout << "Added breakpoint at 0x" << std::hex << std::setw(4) << std::setfill('0') << breakpointAddress << '\n';
+        return CommandReturnCode::OKAY;
+    }
+
+    CPUDebugger::CommandReturnCode CPUDebugger::commandRemoveBreakpoint(const std::vector<std::string>& t_args) {
+        if (t_args.size() != 1) {
+            std::cerr << "This command takes 1 argument\n";
+            return CommandReturnCode::ERROR;
+        }
+
+        Address breakpointAddress = 0;
+        if (!stringToDWord(t_args[0], breakpointAddress)) {
+            std::cerr << "Argument is not a valid address\n";
+            return CommandReturnCode::ERROR;
+        }
+
+        m_breakpoints.erase(breakpointAddress);
+        std::cout << "Deleted breakpoint at 0x" << std::hex << std::setw(4) << std::setfill('0') << breakpointAddress << '\n';
+        return CommandReturnCode::ERROR;
+    }
+
+    CPUDebugger::CommandReturnCode CPUDebugger::commandListBreakpoints(const std::vector<std::string>& t_args) {
+        if (m_breakpoints.empty()) {
+            std::cout << "No breakpoints are currently set\n";
+            return CommandReturnCode::OKAY;   
+        }
+
+        std::cout << "\nBreakpoints\n-----------\n";
+        for (Address breakpoint : m_breakpoints) {
+            std::cout << "0x" << std::hex << std::setw(4) << std::setfill('0') << breakpoint << '\n';
+        }
+        std::cout << '\n';
+        return CommandReturnCode::OKAY;
+    }
+
+    CPUDebugger::CommandReturnCode CPUDebugger::commandDisassembleInstructions(const std::vector<std::string>& t_args) {
+        if (t_args.size() != 1 && t_args.size() != 2) {
+            std::cerr << "This command takes 1 or 2 arguments\n";
+            return CommandReturnCode::ERROR;
+        }
+
+        Address instructionAddress = 0;
+        if (!stringToDWord(t_args[0], instructionAddress)) {
+            std::cerr << "Argument is not a valid address\n";
+            return CommandReturnCode::ERROR;
+        }
+
+        if (t_args.size() == 1) {
+            std::cout << "0x" << std::hex << std::setw(4) << std::setfill('0') << instructionAddress << ": ";
+            printDisassembledInstruction(instructionAddress);
+            return CommandReturnCode::OKAY;
+        }
+        else {
+            DWord instructionCount = 0;
+            if (!stringToDWord(t_args[1], instructionCount)) {
+                std::cerr << "Argument is not a number\n";
+                return CommandReturnCode::ERROR;
+            }
+
+            if (instructionCount == 0) {
+                std::cerr << "Instruction count must be greater than 0\n";
+                return CommandReturnCode::ERROR;
+            }
+
+            Address currentAddress = instructionAddress;
+            for (size_t i = 0; i < instructionCount; i++) {
+                std::cout << "0x" << std::hex << std::setw(4) << std::setfill('0') << currentAddress << ": ";
+                currentAddress += printDisassembledInstruction(currentAddress);
+            }
+            return CommandReturnCode::OKAY;
+        }
+    }
+
+    size_t CPUDebugger::printDisassembledInstruction(Address t_address) const {
         struct InstructionInfo {
             const char* name;
             CPU::AddressMode mode;
         };
+
+        static const std::array<size_t, CPU::ADDRESS_MODE_COUNT> AMOUNT_TABLE {{
+            1, // IMPLICIT
+
+            1, // ACCUMULATOR
+
+            2, // IMMEDIATE
+
+            2, // ZERO_PAGE
+            2, // ZERO_PAGE_X
+            2, // ZERO_PAGE_Y
+
+            2, // RELATIVE
+
+            3, // ABSOLUTE
+            3, // ABSOLUTE_X
+            3, // ABSOLUTE_Y
+
+            3, //INDIRECT
+
+            2, // INDEXED_INDIRECT
+            2  // INDIRECT_INDEXED
+        }};
 
         static std::array<InstructionInfo, 256> DECODED_OPCODES = {{
             { "BRK", CPU::AddressMode::IMPLICIT },
@@ -390,7 +530,7 @@ namespace Emulator {
             { "INVALID", CPU::AddressMode::IMPLICIT }
         }};
 
-        const InstructionInfo instructionInfo = DECODED_OPCODES[m_cpu.m_memory->readWord(m_cpu.m_pc)];
+        const InstructionInfo instructionInfo = DECODED_OPCODES[m_cpu.m_memory->readWord(t_address)];
         std::cout << instructionInfo.name << ' ';
         switch (instructionInfo.mode) {
             case CPU::AddressMode::IMPLICIT:
@@ -401,126 +541,54 @@ namespace Emulator {
                 break;
 
             case CPU::AddressMode::IMMEDIATE:
-                std::cout << "#$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(m_cpu.m_pc + 1);
+                std::cout << "#$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1);
                 break;
 
             case CPU::AddressMode::ZERO_PAGE:
-                std::cout << "$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(m_cpu.m_pc + 1);
+                std::cout << "$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1);
                 break;
 
             case CPU::AddressMode::ZERO_PAGE_X:
-                std::cout << "$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(m_cpu.m_pc + 1) << ",X";
+                std::cout << "$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1) << ",X";
                 break;
 
             case CPU::AddressMode::ZERO_PAGE_Y:
-                std::cout << "$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(m_cpu.m_pc + 1) << ",Y";
+                std::cout << "$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1) << ",Y";
                 break;
 
             case CPU::AddressMode::RELATIVE:
-                std::cout << "$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(m_cpu.m_pc + 1);
+                std::cout << "$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1);
                 break;
 
             case CPU::AddressMode::ABSOLUTE:
-                std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readDWord(m_cpu.m_pc + 1);
+                std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readDWord(t_address + 1);
                 break;
 
             case CPU::AddressMode::ABSOLUTE_X:
-                std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readDWord(m_cpu.m_pc + 1) << ",X";
+                std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readDWord(t_address + 1) << ",X";
                 break;
 
             case CPU::AddressMode::ABSOLUTE_Y:
-                std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readDWord(m_cpu.m_pc + 1) << ",Y";
+                std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readDWord(t_address + 1) << ",Y";
                 break;
 
             case CPU::AddressMode::INDIRECT:
-                std::cout << "($" << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readDWord(m_cpu.m_pc + 1) << ")";
+                std::cout << "($" << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readDWord(t_address + 1) << ")";
                 break;
 
             case CPU::AddressMode::INDEXED_INDIRECT:
-                std::cout << "($" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(m_cpu.m_pc + 1) << ",X)";
+                std::cout << "($" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1) << ",X)";
                 break;
 
             case CPU::AddressMode::INDIRECT_INDEXED:
-                std::cout << "($" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(m_cpu.m_pc + 1) << "),Y";
+                std::cout << "($" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1) << "),Y";
                 break;
 
             default:
                 assert(("Should not be here", false));
         }
         std::cout << '\n';
-
-        return CommandReturnCode::OKAY;
-    }
-
-    CPUDebugger::CommandReturnCode CPUDebugger::commandPrintRegisters(const std::vector<std::string>& t_args) {
-        // TODO: implement this here instead of in CPU
-        m_cpu.printRegisters();
-        return CommandReturnCode::OKAY;
-    }
-
-    CPUDebugger::CommandReturnCode CPUDebugger::commandQuit(const std::vector<std::string>& t_args) {
-        std::cout << "Do you really want to quit? (y/n)\n";
-        std::string input;
-        std::getline(std::cin, input);
-        while (input != "y" && input != "n") {
-            std::cout << "Please enter either 'y' or 'n'\n";
-            std::getline(std::cin, input);
-        }
-
-        if (input == "y") {
-            return CommandReturnCode::HALT;
-        }
-        else {
-            return CommandReturnCode::OKAY;
-        }
-    }
-
-    CPUDebugger::CommandReturnCode CPUDebugger::commandSetBreakpoint(const std::vector<std::string>& t_args) {
-        if (t_args.size() != 1) {
-            std::cerr << "This command takes 1 argument\n";
-            return CommandReturnCode::ERROR;
-        }
-
-        Address breakpointAddress = 0;
-        if (!stringToAddress(t_args[0], breakpointAddress)) {
-            std::cerr << "Argument is not a valid address\n";
-            return CommandReturnCode::ERROR;
-        }
-
-        m_breakpoints.insert(breakpointAddress);
-        std::cout << "Added breakpoint at 0x" << std::hex << std::setw(4) << std::setfill('0') << breakpointAddress << '\n';
-        return CommandReturnCode::OKAY;
-    }
-
-    CPUDebugger::CommandReturnCode CPUDebugger::commandRemoveBreakpoint(const std::vector<std::string>& t_args) {
-        if (t_args.size() != 1) {
-            std::cerr << "This command takes 1 argument\n";
-            return CommandReturnCode::ERROR;
-        }
-
-        Address breakpointAddress = 0;
-        if (!stringToAddress(t_args[0], breakpointAddress)) {
-            std::cerr << "Argument is not a valid address\n";
-            return CommandReturnCode::ERROR;
-        }
-
-        m_breakpoints.erase(breakpointAddress);
-        std::cout << "Deleted breakpoint at 0x" << std::hex << std::setw(4) << std::setfill('0') << breakpointAddress << '\n';
-        return CommandReturnCode::ERROR;
-    }
-
-    CPUDebugger::CommandReturnCode CPUDebugger::commandListBreakpoints(const std::vector<std::string>& t_args) {
-        if (m_breakpoints.empty()) {
-            std::cout << "No breakpoints are currently set\n";
-            return CommandReturnCode::OKAY;   
-        }
-
-        std::cout << "\nBreakpoints\n-----------\n";
-        for (Address breakpoint : m_breakpoints) {
-            std::cout << "0x" << std::hex << std::setw(4) << std::setfill('0') << breakpoint << '\n';
-        }
-        std::cout << '\n';
-        return CommandReturnCode::OKAY;
+        return AMOUNT_TABLE[static_cast<size_t>(instructionInfo.mode)];
     }
 
     std::vector<std::string> splitString(const std::string& t_string, char t_delimiter) {
@@ -542,7 +610,7 @@ namespace Emulator {
         return tokens;
     }
 
-    bool stringToAddress(const std::string& t_string, Address& r_address) {
+    bool stringToDWord(const std::string& t_string, Address& r_address) {
         try {
             if (t_string.starts_with("0x")) {
                 r_address = std::stoul(t_string, nullptr, 16);
