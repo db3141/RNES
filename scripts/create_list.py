@@ -331,8 +331,8 @@ for i in range(len(instructions)):
     (name,mode) = instructions[i]
     if name == None:
         instStr = "nullptr"
-        modeStr = "AddressMode::NONE"
+        modeStr = "CPU::AddressMode::NONE"
     else:
         instStr = "&CPU::instruction" + name
-        modeStr = "AddressMode::" + mode
+        modeStr = "CPU::AddressMode::" + mode
     print("{", "{:<21}".format(instStr + ","), "{:<32}".format(modeStr + " },"), "/*", hex_str, "*/")

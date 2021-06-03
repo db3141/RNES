@@ -3,6 +3,9 @@
 
 #include "cpu.hpp"
 
+// TODO: fix JSR [done]
+//       fix BRK [done]
+
 namespace Emulator { 
 
     bool signsMatch(Word t_v1, Word t_v2) {
@@ -11,6 +14,11 @@ namespace Emulator {
 
 	void CPU::instructionLDA(AddressMode t_addressMode) {
 		const Word value = getWordArgument(t_addressMode);
+        if (t_addressMode == AddressMode::ABSOLUTE) {
+            //std::cout << std::hex << std::setw(4) << std::setfill('0') << m_pc << ": ";
+            //std::cout << std::hex << std::setw(4) << std::setfill('0') << m_memory->readDWord(m_pc + 1) << " = ";
+            //std::cout << std::hex << std::setw(2) << std::setfill('0') << DWord(m_memory->readWord(m_memory->readDWord(m_pc + 1))) << '\n';
+        }
 	    m_acc = value;
 
 	    setFlag(StatusFlag::ZERO, m_acc == 0);
@@ -109,10 +117,6 @@ namespace Emulator {
 
     void CPU::instructionTXS(AddressMode t_addressMode) {
         m_sp = m_x;
-
-        setFlag(StatusFlag::ZERO, m_sp == 0);
-        setFlag(StatusFlag::NEGATIVE, m_sp & 0x80U);
-
         m_pc += instructionSize(t_addressMode);
 	}
 
@@ -391,10 +395,9 @@ namespace Emulator {
 	}
 
     void CPU::instructionJSR(AddressMode t_addressMode) {
-		const Address address = getAddressArgument(t_addressMode);
-        stackPushDWord(address);
-
-        m_pc = address;
+        std::cout << std::hex << m_pc << '\n';
+        stackPushDWord(m_pc + instructionSize(t_addressMode) - 1);
+        m_pc = getAddressArgument(t_addressMode);
 	}
 
     void CPU::instructionRTS(AddressMode t_addressMode) {
@@ -513,10 +516,8 @@ namespace Emulator {
 
 
     void CPU::instructionBRK(AddressMode t_addressMode) {
-		stackPushDWord(m_pc);
-        stackPushWord(m_st | 0b00110000); // Set b flags
-
-        m_pc = m_memory->readDWord(0xFFFE);
+        generateBRK();
+        m_pc += instructionSize(t_addressMode);
 	}
 
     void CPU::instructionNOP(AddressMode t_addressMode) {

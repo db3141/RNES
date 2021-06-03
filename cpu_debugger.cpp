@@ -14,6 +14,11 @@ namespace Emulator {
     std::vector<std::string> splitString(const std::string& t_string, char t_delimiter); 
     bool stringToDWord(const std::string& t_string, Address& r_address);
 
+    template<typename T>
+    void printAsHex(T t_value) {
+        std::cout << std::hex << std::setw(sizeof(T) * 2) << std::setfill('0') << static_cast<long long>(t_value);
+    }
+
     CPUDebugger::CPUDebugger(CPU& t_cpu)
         : m_cpu(t_cpu) 
         , m_breakpoints()
@@ -26,7 +31,7 @@ namespace Emulator {
         bool done = false;
         
         while (!done) {
-            std::cout << "[0x" << std::hex << std::setw(4) << std::setfill('0') << m_cpu.m_pc << "]> ";
+            std::cout << "[0x"; printAsHex(m_cpu.m_pc); std::cout << "]> ";
 
             std::string userInput;
             std::getline(std::cin, userInput);
@@ -74,6 +79,9 @@ namespace Emulator {
 
             { "d"           , &CPUDebugger::commandDisassembleInstructions },
             { "disassemble" , &CPUDebugger::commandDisassembleInstructions },
+
+            { "x"           , &CPUDebugger::commandExamineAddress },
+            { "examine"     , &CPUDebugger::commandExamineAddress },
         };
 
         //std::cout << "Command: " << t_command << " (" << t_command.length() << ")\n";
@@ -118,9 +126,17 @@ namespace Emulator {
     CPUDebugger::CommandReturnCode CPUDebugger::commandContinue(const std::vector<std::string>& t_args) {
         bool done = false;
         while (!done) {
+            std::cout << "0x"; printAsHex(m_cpu.m_pc); std::cout << ": ";
+            printDisassembledInstruction(m_cpu.m_pc);
+
+            const Address previousPC = m_cpu.m_pc;
             if (m_cpu.executeInstruction()) {
                 std::cout << "CPU halt\n";
                 return CommandReturnCode::HALT;
+            }
+            if (m_cpu.m_pc == previousPC) {
+                std::cerr << "Infinite loop detected\n";
+                return CommandReturnCode::ERROR;
             }
             done = m_breakpoints.contains(m_cpu.m_pc);
         };
@@ -169,7 +185,7 @@ namespace Emulator {
         }
 
         m_breakpoints.insert(breakpointAddress);
-        std::cout << "Added breakpoint at 0x" << std::hex << std::setw(4) << std::setfill('0') << breakpointAddress << '\n';
+        std::cout << "Added breakpoint at 0x"; printAsHex(breakpointAddress); std::cout << '\n';
         return CommandReturnCode::OKAY;
     }
 
@@ -186,7 +202,7 @@ namespace Emulator {
         }
 
         m_breakpoints.erase(breakpointAddress);
-        std::cout << "Deleted breakpoint at 0x" << std::hex << std::setw(4) << std::setfill('0') << breakpointAddress << '\n';
+        std::cout << "Deleted breakpoint at 0x"; printAsHex(breakpointAddress); std::cout << '\n';
         return CommandReturnCode::ERROR;
     }
 
@@ -198,7 +214,7 @@ namespace Emulator {
 
         std::cout << "\nBreakpoints\n-----------\n";
         for (Address breakpoint : m_breakpoints) {
-            std::cout << "0x" << std::hex << std::setw(4) << std::setfill('0') << breakpoint << '\n';
+            std::cout << "0x"; printAsHex(breakpoint); std::cout << '\n';
         }
         std::cout << '\n';
         return CommandReturnCode::OKAY;
@@ -217,7 +233,7 @@ namespace Emulator {
         }
 
         if (t_args.size() == 1) {
-            std::cout << "0x" << std::hex << std::setw(4) << std::setfill('0') << instructionAddress << ": ";
+            std::cout << "0x"; printAsHex(instructionAddress); std::cout << ": ";
             printDisassembledInstruction(instructionAddress);
             return CommandReturnCode::OKAY;
         }
@@ -233,13 +249,67 @@ namespace Emulator {
                 return CommandReturnCode::ERROR;
             }
 
+            std::cout << '\n';
             Address currentAddress = instructionAddress;
             for (size_t i = 0; i < instructionCount; i++) {
-                std::cout << "0x" << std::hex << std::setw(4) << std::setfill('0') << currentAddress << ": ";
+                std::cout << "0x"; printAsHex(currentAddress); std::cout << ": ";
                 currentAddress += printDisassembledInstruction(currentAddress);
             }
+            std::cout << '\n';
             return CommandReturnCode::OKAY;
         }
+    }
+
+    CPUDebugger::CommandReturnCode CPUDebugger::commandExamineAddress(const std::vector<std::string>& t_args) {
+        static const size_t BYTES_PER_LINE = 16;
+
+        if (t_args.size() != 1 && t_args.size() != 2) {
+            std::cerr << "This command takes 1 or 2 arguments\n";
+            return CommandReturnCode::ERROR;
+        }
+
+        Address address = 0;
+        if (!stringToDWord(t_args[0], address)) {
+            std::cerr << "Argument is not a valid address\n";
+            return CommandReturnCode::ERROR;
+        }
+
+        DWord numberOfBytes = 0;
+        if (t_args.size() == 1) {
+            numberOfBytes = 1;
+        }
+        else {
+            if (!stringToDWord(t_args[1], numberOfBytes)) {
+                std::cerr << "Argument is not a number\n";
+                return CommandReturnCode::ERROR;
+            }
+
+            if (numberOfBytes == 0) {
+                std::cerr << "Number of bytes to read must be greater than 0\n";
+                return CommandReturnCode::ERROR;
+            }
+        }
+        for (size_t i = 0; i < numberOfBytes / BYTES_PER_LINE; i++) {
+            std::cout << "0x"; printAsHex(static_cast<Address>(address + i * BYTES_PER_LINE)); std::cout << ": ";
+
+            for (size_t j = 0; j < BYTES_PER_LINE; j++) {
+                printAsHex(m_cpu.m_memory->readWord(static_cast<Address>(address + (i * BYTES_PER_LINE) + j))); std::cout << ' ';
+            }
+            std::cout << '\n';
+        }
+
+        const size_t numberOfLeftoverBytes = numberOfBytes % BYTES_PER_LINE;
+        if (numberOfLeftoverBytes != 0) {
+            const Address startAddress = address + (numberOfBytes - numberOfLeftoverBytes);
+
+            std::cout << "0x"; printAsHex(startAddress); std::cout << ": ";
+            for (size_t i = 0; i < numberOfLeftoverBytes; i++) {
+                printAsHex(m_cpu.m_memory->readWord(static_cast<Address>(startAddress + i))); std::cout << ' ';
+            }
+        }
+        std::cout << '\n';
+
+        return CommandReturnCode::OKAY;
     }
 
     size_t CPUDebugger::printDisassembledInstruction(Address t_address) const {
@@ -541,47 +611,47 @@ namespace Emulator {
                 break;
 
             case CPU::AddressMode::IMMEDIATE:
-                std::cout << "#$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1);
+                std::cout << "#$"; printAsHex(m_cpu.m_memory->readWord(t_address + 1));
                 break;
 
             case CPU::AddressMode::ZERO_PAGE:
-                std::cout << "$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1);
+                std::cout << "$"; printAsHex(m_cpu.m_memory->readWord(t_address + 1));
                 break;
 
             case CPU::AddressMode::ZERO_PAGE_X:
-                std::cout << "$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1) << ",X";
+                std::cout << "$"; printAsHex(m_cpu.m_memory->readWord(t_address + 1)); std::cout << ",X";
                 break;
 
             case CPU::AddressMode::ZERO_PAGE_Y:
-                std::cout << "$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1) << ",Y";
+                std::cout << "$"; printAsHex(m_cpu.m_memory->readWord(t_address + 1)); std::cout << ",Y";
                 break;
 
             case CPU::AddressMode::RELATIVE:
-                std::cout << "$" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1);
+                std::cout << "$"; printAsHex(m_cpu.m_memory->readWord(t_address + 1));
                 break;
 
             case CPU::AddressMode::ABSOLUTE:
-                std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readDWord(t_address + 1);
+                std::cout << "$"; printAsHex(m_cpu.m_memory->readDWord(t_address + 1));
                 break;
 
             case CPU::AddressMode::ABSOLUTE_X:
-                std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readDWord(t_address + 1) << ",X";
+                std::cout << "$"; printAsHex(m_cpu.m_memory->readDWord(t_address + 1)); std::cout << ",X";
                 break;
 
             case CPU::AddressMode::ABSOLUTE_Y:
-                std::cout << "$" << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readDWord(t_address + 1) << ",Y";
+                std::cout << "$"; printAsHex(m_cpu.m_memory->readDWord(t_address + 1)); std::cout << ",Y";
                 break;
 
             case CPU::AddressMode::INDIRECT:
-                std::cout << "($" << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readDWord(t_address + 1) << ")";
+                std::cout << "($"; printAsHex(m_cpu.m_memory->readDWord(t_address + 1)); std::cout << ")";
                 break;
 
             case CPU::AddressMode::INDEXED_INDIRECT:
-                std::cout << "($" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1) << ",X)";
+                std::cout << "($"; printAsHex(m_cpu.m_memory->readWord(t_address + 1)); std::cout << ",X)";
                 break;
 
             case CPU::AddressMode::INDIRECT_INDEXED:
-                std::cout << "($" << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)m_cpu.m_memory->readWord(t_address + 1) << "),Y";
+                std::cout << "($"; printAsHex(m_cpu.m_memory->readWord(t_address + 1)); std::cout << "),Y";
                 break;
 
             default:

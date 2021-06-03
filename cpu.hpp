@@ -88,9 +88,13 @@ namespace Emulator {
         Word m_y;
         Word m_st;
 
-        //----- Private methods -----//
-        void clock();
+        struct {
+            bool irq;
+            bool brk;
+            bool nmi;
+        } m_interruptFlags;
 
+        //----- Private methods -----//
         [[nodiscard]] bool getFlag(StatusFlag t_flag) const;
         void setFlag(StatusFlag t_flag, bool t_value);
 
@@ -99,11 +103,18 @@ namespace Emulator {
         [[nodiscard]] WordReference getWordArgument(AddressMode t_mode);
         [[nodiscard]] Address getAddressArgument(AddressMode t_mode);
 
+        //----- Interrupts -----//
+        void generateIRQ();
+        void generateBRK();
+        void generateNMI();
+
+        void handleInterrupts();
+
         //----- Stack -----//
         void stackPushWord(Word t_word);
         Word stackPopWord();
 
-        void stackPushDWord(Word t_dword);
+        void stackPushDWord(DWord t_dword);
         DWord stackPopDWord();
 
 

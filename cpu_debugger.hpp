@@ -25,15 +25,19 @@ namespace Emulator {
 
         CommandReturnCode commandStep(const std::vector<std::string>& t_args);
         CommandReturnCode commandContinue(const std::vector<std::string>& t_args);
-        CommandReturnCode commandDecodeCurrentInstruction(const std::vector<std::string>& t_args);
+
         CommandReturnCode commandPrintRegisters(const std::vector<std::string>& t_args);
+
         CommandReturnCode commandQuit(const std::vector<std::string>& t_args);
 
         CommandReturnCode commandSetBreakpoint(const std::vector<std::string>& t_args);
         CommandReturnCode commandRemoveBreakpoint(const std::vector<std::string>& t_args);
         CommandReturnCode commandListBreakpoints(const std::vector<std::string>& t_args);
 
+        CommandReturnCode commandDecodeCurrentInstruction(const std::vector<std::string>& t_args);
         CommandReturnCode commandDisassembleInstructions(const std::vector<std::string>& t_args);
+
+        CommandReturnCode commandExamineAddress(const std::vector<std::string>& t_args);
 
         using Command = CommandReturnCode (CPUDebugger::*)(const std::vector<std::string>&);
 

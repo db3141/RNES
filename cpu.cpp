@@ -7,6 +7,7 @@
 #include "cpu.hpp"
 
 namespace Emulator {
+    
     DWord signExtendWord(Word t_value) {
         if (t_value & 0x80U) {
             return 0xFF00U | t_value;
@@ -24,6 +25,7 @@ namespace Emulator {
         , m_x(0x00)
         , m_y(0x00)
         , m_st(0x00)
+        , m_interruptFlags({ false, false, false })
     {
         ;
     }
@@ -305,22 +307,20 @@ namespace Emulator {
             { nullptr,              AddressMode::NONE },             /* 0xff */
         }};
 
+        handleInterrupts();
+
         const Word opcode = m_memory->readWord(m_pc);
         const InstructionInfo info = INSTRUCTION_TABLE[opcode];
 
         // TODO: change to assert
         if (info.instruction == nullptr) {
             printRegisters();
-            throw std::exception();
+            abort();
         }
         
         // call the function obtained from the table
         (this->*info.instruction)(info.addressMode);
         return false;
-    }
-
-    void CPU::clock() {
-        // TODO
     }
 
     bool CPU::getFlag(StatusFlag t_flag) const {
@@ -465,7 +465,41 @@ namespace Emulator {
                 assert("Invalid address mode");
         }
 
-        throw std::exception();
+        abort();
+    }
+
+    void CPU::generateIRQ() {
+        m_interruptFlags.irq = true;
+    }
+        
+    void CPU::generateBRK() {
+        m_interruptFlags.brk = true;
+    }
+        
+    void CPU::generateNMI() {
+        m_interruptFlags.nmi = true;
+    }
+
+    void CPU::handleInterrupts() {
+        if (m_interruptFlags.nmi) {
+            m_interruptFlags.nmi = false;
+            assert(false /* TODO */);
+        }
+        else if (m_interruptFlags.brk) {
+            m_interruptFlags.brk = false;
+
+            stackPushDWord(m_pc + 1); // size of BRK is 1
+            stackPushWord(m_st | 0b00110000);
+
+            setFlag(StatusFlag::INTERRUPT_DISABLE, true);
+
+            std::cout << std::hex << m_memory->readDWord(0xFFFE) << '\n';
+            m_pc = m_memory->readDWord(0xFFFE);           
+        }
+        else if (m_interruptFlags.irq && getFlag(StatusFlag::INTERRUPT_DISABLE)) {
+            m_interruptFlags.irq = false;
+            assert(false /* TODO */);
+        }
     }
 
     void CPU::stackPushWord(Word t_word) {
@@ -478,7 +512,7 @@ namespace Emulator {
         return m_memory->readWord(m_sp + 0x0100U);
     }
 
-    void CPU::stackPushDWord(Word t_dword) {
+    void CPU::stackPushDWord(DWord t_dword) {
         m_memory->writeWord(m_sp + 0x0100U, (t_dword >> 8) & 0x00FFU);
         m_sp--;
         m_memory->writeWord(m_sp + 0x0100U, (t_dword >> 0) & 0x00FFU);
@@ -523,8 +557,7 @@ namespace Emulator {
             return m_cpu.m_memory->readWord(*addressPointer);
         }
         else {
-            assert("Tried to use invalid WordReference");
-            throw std::exception();
+            assert(/* Tried to use invalid WordReference */ false);
         }
     }
 
@@ -536,7 +569,7 @@ namespace Emulator {
             m_cpu.m_memory->writeWord(*val, t_value);
         }
         else {
-            assert("Tried to use invalid WordReference");
+            assert(/* Tried to use invalid WordReference */ false);
         }
     }
 
