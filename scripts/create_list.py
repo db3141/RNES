@@ -27,7 +27,7 @@ instructions = [
     (None, None),
     (None, None),
     ("ORA", ZRPG),
-    ("ASL", IMMD),
+    ("ASL", ZRPG),
     (None, None),
     ("PHP", IMPL),
     ("ORA", IMMD),

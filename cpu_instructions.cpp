@@ -5,6 +5,7 @@
 
 // TODO: fix JSR [done]
 //       fix BRK [done]
+//       fix BIT
 
 namespace Emulator { 
 
@@ -182,8 +183,8 @@ namespace Emulator {
         const Word result = m_acc & value;
 
         setFlag(StatusFlag::ZERO, result == 0);
-        setFlag(StatusFlag::OVERFLOW, result & 0x40U);
-        setFlag(StatusFlag::NEGATIVE, result & 0x80U);
+        setFlag(StatusFlag::OVERFLOW, value & 0b01000000);
+        setFlag(StatusFlag::NEGATIVE, value & 0b10000000);
 
         m_pc += instructionSize(t_addressMode);
 	}

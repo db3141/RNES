@@ -348,7 +348,7 @@ namespace Emulator {
             { "INVALID", CPU::AddressMode::IMPLICIT },
             { "INVALID", CPU::AddressMode::IMPLICIT },
             { "ORA", CPU::AddressMode::ZERO_PAGE },
-            { "ASL", CPU::AddressMode::IMMEDIATE },
+            { "ASL", CPU::AddressMode::ZERO_PAGE },
             { "INVALID", CPU::AddressMode::IMPLICIT },
             { "PHP", CPU::AddressMode::IMPLICIT },
             { "ORA", CPU::AddressMode::IMMEDIATE },

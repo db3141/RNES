@@ -55,7 +55,7 @@ namespace Emulator {
             { nullptr,              AddressMode::NONE },             /* 0x03 */
             { nullptr,              AddressMode::NONE },             /* 0x04 */
             { &CPU::instructionORA, AddressMode::ZERO_PAGE },        /* 0x05 */
-            { &CPU::instructionASL, AddressMode::IMMEDIATE },        /* 0x06 */
+            { &CPU::instructionASL, AddressMode::ZERO_PAGE },        /* 0x06 */
             { nullptr,              AddressMode::NONE },             /* 0x07 */
             { &CPU::instructionPHP, AddressMode::IMPLICIT },         /* 0x08 */
             { &CPU::instructionORA, AddressMode::IMMEDIATE },        /* 0x09 */
