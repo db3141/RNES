@@ -22,7 +22,7 @@ INDY = "INDIRECT_INDEXED"
 instructions = [
     # 0x0x
     ("BRK", IMPL),
-    ("ORA", INDR),
+    ("ORA", INDX),
     (None, None),
     (None, None),
     (None, None),

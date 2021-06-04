@@ -50,7 +50,7 @@ namespace Emulator {
 
         static const std::array<InstructionInfo, 256> INSTRUCTION_TABLE = {{
             { &CPU::instructionBRK, AddressMode::IMPLICIT },         /* 0x00 */
-            { &CPU::instructionORA, AddressMode::INDIRECT },         /* 0x01 */
+            { &CPU::instructionORA, AddressMode::INDEXED_INDIRECT }, /* 0x01 */
             { nullptr,              AddressMode::NONE },             /* 0x02 */
             { nullptr,              AddressMode::NONE },             /* 0x03 */
             { nullptr,              AddressMode::NONE },             /* 0x04 */

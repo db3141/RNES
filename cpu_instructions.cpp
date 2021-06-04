@@ -5,12 +5,17 @@
 
 // TODO: fix JSR [done]
 //       fix BRK [done]
-//       fix BIT
+//       fix BIT [done]
+//       fix SBC [done]
 
 namespace Emulator { 
 
     bool signsMatch(Word t_v1, Word t_v2) {
         return (t_v1 & 0x80U) == (t_v2 & 0x80U);
+    }
+
+    DWord signExtend(Word t_value) {
+        return (t_value & 0x80) ? (0xFF00U | t_value) : (0x0000 | t_value);
     }
 
 	void CPU::instructionLDA(AddressMode t_addressMode) {
@@ -142,7 +147,7 @@ namespace Emulator {
 	}
 
     void CPU::instructionPLP(AddressMode t_addressMode) {
-        m_st = stackPopWord();
+        m_st = stackPopWord() & 0b11001111; // mask out b flags
 
         m_pc += instructionSize(t_addressMode);
 	}
@@ -191,43 +196,103 @@ namespace Emulator {
 
 
     void CPU::instructionADC(AddressMode t_addressMode) {
-        const Word v1 = m_acc;
-		const Word v2 = getWordArgument(t_addressMode);
+        const Word arg = getWordArgument(t_addressMode);
 
-        const Word v3 = v1 + getFlag(StatusFlag::CARRY);
+        if (!getFlag(StatusFlag::DECIMAL)) {
+            const Word oldAcc = m_acc;
+            const DWord result = m_acc + arg + getFlag(StatusFlag::CARRY);
 
-        const DWord result = v2 + v3;
-        m_acc = result & 0x00FFU;
+            m_acc = result & 0x00FFU;
 
-        setFlag(StatusFlag::CARRY, result > 0xFFU);
-        setFlag(StatusFlag::ZERO, m_acc == 0);
-        setFlag(StatusFlag::NEGATIVE, m_acc & 0x80U);
+            setFlag(StatusFlag::ZERO, m_acc == 0);
+            setFlag(StatusFlag::NEGATIVE, m_acc & 0x80U);
+            setFlag(StatusFlag::CARRY, result & 0xFF00);
 
-        const bool overflow =
-            ((v1 == 0x7F) && getFlag(StatusFlag::CARRY)) ||
-            (signsMatch(v2, v3) && !signsMatch(v2, m_acc));
-        setFlag(StatusFlag::OVERFLOW, overflow);
+            const bool overflow = (~(oldAcc ^ arg) & (oldAcc ^ m_acc)) & 0x80;
+            setFlag(StatusFlag::OVERFLOW, overflow);
+        }
+        else {
+            const Word accLo = (m_acc & 0x0F) >> 0;
+            const Word accHi = (m_acc & 0xF0) >> 4;
+            const Word argLo = (arg & 0x0F) >> 0;
+            const Word argHi = (arg & 0xF0) >> 4;
+
+            
+            const Word sumLo = accLo + argLo + getFlag(StatusFlag::CARRY);
+            const Word resultLo = sumLo % 10;
+            const bool carryLo = (sumLo != resultLo);
+
+            const Word sumHi = accHi + argHi + carryLo;
+            const Word resultHi = sumHi % 10;
+            const bool carryHi = (sumHi != resultHi);
+
+            const Word result = (resultHi << 4) | (resultLo << 0);
+
+            m_acc = result;
+
+            setFlag(StatusFlag::ZERO, m_acc == 0);
+            setFlag(StatusFlag::NEGATIVE, m_acc & 0x80U);
+            setFlag(StatusFlag::CARRY, carryHi);
+
+            // TODO: figure out what to do for the overflow flag here
+        }
 
         m_pc += instructionSize(t_addressMode);
 	}
 
     void CPU::instructionSBC(AddressMode t_addressMode) {
-        const Word v1 = m_acc;
-        const Word v2 = getWordArgument(t_addressMode);
+        const Word arg = getWordArgument(t_addressMode);
 
-        const Word v3 = v1 - !getFlag(StatusFlag::CARRY);
+        if (!getFlag(StatusFlag::DECIMAL)) {
+            const Word oldAcc = m_acc;
+            const Word argComp = ~arg;
+            const DWord result = m_acc + argComp + getFlag(StatusFlag::CARRY);
 
-        const DWord result = v3 - v2;
-        m_acc = result & 0x00FFU;
+            m_acc = result & 0x00FFU;
 
-        setFlag(StatusFlag::CARRY, result > 0xFFU);
-        setFlag(StatusFlag::ZERO, m_acc == 0);
-        setFlag(StatusFlag::NEGATIVE, m_acc & 0x80U);
+            setFlag(StatusFlag::ZERO, m_acc == 0);
+            setFlag(StatusFlag::NEGATIVE, m_acc & 0x80U);
+            setFlag(StatusFlag::CARRY, result & 0xFF00);
 
-        const bool overflow =
-            ((v1 == 0) && !getFlag(StatusFlag::CARRY)) ||
-            (!signsMatch(v2, v3) && !signsMatch(v3, m_acc));
-        setFlag(StatusFlag::OVERFLOW, overflow);
+            const bool overflow = (~(oldAcc ^ argComp) & (oldAcc ^ m_acc)) & 0x80;
+            setFlag(StatusFlag::OVERFLOW, overflow);
+        }
+        else {
+            const Word accLo = (m_acc & 0x0F) >> 0;
+            const Word accHi = (m_acc & 0xF0) >> 4;
+            const Word argLo = (arg & 0x0F) >> 0;
+            const Word argHi = (arg & 0xF0) >> 4;
+
+            const Word diffLo = accLo - argLo - (1 - getFlag(StatusFlag::CARRY));
+            const bool borrowLo = !!(diffLo & 0x80);
+            const Word resultLo = borrowLo ? (diffLo + 10) : diffLo;
+
+            const Word diffHi = accHi - argHi - borrowLo;
+            const bool borrowHi = !!(diffHi & 0x80);
+            const Word resultHi = borrowHi ? (diffHi + 10) : diffHi;
+
+            const Word result = (resultHi << 4) | (resultLo << 0);
+
+            /*
+            std::cout << "ACC: " << std::hex << static_cast<int>(m_acc) << '\n';
+            std::cout << "ARG: " << std::hex << static_cast<int>(arg) << '\n';
+            std::cout << "CAR: " << std::hex << getFlag(StatusFlag::CARRY) << '\n';
+            std::cout << '\n';
+            std::cout << "DLO: " << std::hex << static_cast<int>(diffLo) << '\n';
+            std::cout << "DHI: " << std::hex << static_cast<int>(diffHi) << '\n';
+            std::cout << "BOR: " << std::hex << !borrowHi << '\n';
+            std::cout << "RES: " << std::hex << static_cast<int>(result) << '\n';
+            std::cout << "\n\n";
+            */
+
+            m_acc = result;
+
+            setFlag(StatusFlag::ZERO, m_acc == 0);
+            setFlag(StatusFlag::NEGATIVE, m_acc & 0x80U);
+            setFlag(StatusFlag::CARRY, !borrowHi);
+
+            // TODO: overflow
+        }
 
         m_pc += instructionSize(t_addressMode);
 	}
@@ -396,7 +461,7 @@ namespace Emulator {
 	}
 
     void CPU::instructionJSR(AddressMode t_addressMode) {
-        std::cout << std::hex << m_pc << '\n';
+        //std::cout << std::hex << m_pc << '\n';
         stackPushDWord(m_pc + instructionSize(t_addressMode) - 1);
         m_pc = getAddressArgument(t_addressMode);
 	}

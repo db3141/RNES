@@ -126,8 +126,8 @@ namespace Emulator {
     CPUDebugger::CommandReturnCode CPUDebugger::commandContinue(const std::vector<std::string>& t_args) {
         bool done = false;
         while (!done) {
-            std::cout << "0x"; printAsHex(m_cpu.m_pc); std::cout << ": ";
-            printDisassembledInstruction(m_cpu.m_pc);
+            //std::cout << "0x"; printAsHex(m_cpu.m_pc); std::cout << ": \n";
+            //printDisassembledInstruction(m_cpu.m_pc);
 
             const Address previousPC = m_cpu.m_pc;
             if (m_cpu.executeInstruction()) {
@@ -343,7 +343,7 @@ namespace Emulator {
 
         static std::array<InstructionInfo, 256> DECODED_OPCODES = {{
             { "BRK", CPU::AddressMode::IMPLICIT },
-            { "ORA", CPU::AddressMode::INDIRECT },
+            { "ORA", CPU::AddressMode::INDEXED_INDIRECT },
             { "INVALID", CPU::AddressMode::IMPLICIT },
             { "INVALID", CPU::AddressMode::IMPLICIT },
             { "INVALID", CPU::AddressMode::IMPLICIT },
