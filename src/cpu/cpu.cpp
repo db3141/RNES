@@ -6,7 +6,7 @@
 
 #include "cpu.hpp"
 
-namespace Emulator {
+namespace RNES {
     
     DWord signExtendWord(Word t_value) {
         if (t_value & 0x80U) {

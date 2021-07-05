@@ -1,9 +1,9 @@
-#ifndef MEMORY_INCLUDED
-#define MEMORY_INCLUDED
+#ifndef RNES_MEMORY_INCLUDED
+#define RNES_MEMORY_INCLUDED
 
 #include <stddef.h>
 
-namespace Emulator {
+namespace RNES {
 
     using Word = uint8_t;
     using DWord = uint16_t;

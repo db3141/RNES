@@ -1,14 +1,6 @@
-#include <iostream>
-#include <iomanip>
-
 #include "cpu.hpp"
 
-// TODO: fix JSR [done]
-//       fix BRK [done]
-//       fix BIT [done]
-//       fix SBC [done]
-
-namespace Emulator { 
+namespace RNES { 
 
     bool signsMatch(Word t_v1, Word t_v2) {
         return (t_v1 & 0x80U) == (t_v2 & 0x80U);
@@ -20,11 +12,6 @@ namespace Emulator {
 
 	void CPU::instructionLDA(AddressMode t_addressMode) {
 		const Word value = getWordArgument(t_addressMode);
-        if (t_addressMode == AddressMode::ABSOLUTE) {
-            //std::cout << std::hex << std::setw(4) << std::setfill('0') << m_pc << ": ";
-            //std::cout << std::hex << std::setw(4) << std::setfill('0') << m_memory->readDWord(m_pc + 1) << " = ";
-            //std::cout << std::hex << std::setw(2) << std::setfill('0') << DWord(m_memory->readWord(m_memory->readDWord(m_pc + 1))) << '\n';
-        }
 	    m_acc = value;
 
 	    setFlag(StatusFlag::ZERO, m_acc == 0);
@@ -273,18 +260,6 @@ namespace Emulator {
 
             const Word result = (resultHi << 4) | (resultLo << 0);
 
-            /*
-            std::cout << "ACC: " << std::hex << static_cast<int>(m_acc) << '\n';
-            std::cout << "ARG: " << std::hex << static_cast<int>(arg) << '\n';
-            std::cout << "CAR: " << std::hex << getFlag(StatusFlag::CARRY) << '\n';
-            std::cout << '\n';
-            std::cout << "DLO: " << std::hex << static_cast<int>(diffLo) << '\n';
-            std::cout << "DHI: " << std::hex << static_cast<int>(diffHi) << '\n';
-            std::cout << "BOR: " << std::hex << !borrowHi << '\n';
-            std::cout << "RES: " << std::hex << static_cast<int>(result) << '\n';
-            std::cout << "\n\n";
-            */
-
             m_acc = result;
 
             setFlag(StatusFlag::ZERO, m_acc == 0);
@@ -461,7 +436,6 @@ namespace Emulator {
 	}
 
     void CPU::instructionJSR(AddressMode t_addressMode) {
-        //std::cout << std::hex << m_pc << '\n';
         stackPushDWord(m_pc + instructionSize(t_addressMode) - 1);
         m_pc = getAddressArgument(t_addressMode);
 	}

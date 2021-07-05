@@ -1,11 +1,11 @@
-#ifndef RAM_INCLUDED
-#define RAM_INCLUDED
+#ifndef RNES_MEMORY_RAM_INCLUDED
+#define RNES_MEMORY_RAM_INCLUDED
 
 #include <array>
 
 #include "memory.hpp"
 
-namespace Emulator {
+namespace RNES {
 
     class RAM : public Memory {
     public:

@@ -3,7 +3,7 @@
 
 #include "ram.hpp"
 
-namespace Emulator {
+namespace RNES {
 
     RAM::RAM() : m_ram() {
         ;

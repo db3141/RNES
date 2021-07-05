@@ -1,5 +1,5 @@
-#ifndef EMULATOR_CPU_DEBUGGER
-#define EMULATOR_CPU_DEBUGGER
+#ifndef RNES_CPU_DEBUGGER
+#define RNES_CPU_DEBUGGER
 
 #include <string>
 #include <unordered_set>
@@ -7,7 +7,7 @@
 
 #include "cpu.hpp"
 
-namespace Emulator {
+namespace RNES {
 
     class CPUDebugger {
     public:

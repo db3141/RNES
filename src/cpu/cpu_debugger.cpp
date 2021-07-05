@@ -9,7 +9,7 @@
 #include "cpu.hpp"
 #include "cpu_debugger.hpp"
 
-namespace Emulator {
+namespace RNES {
 
     std::vector<std::string> splitString(const std::string& t_string, char t_delimiter); 
     bool stringToDWord(const std::string& t_string, Address& r_address);
@@ -84,7 +84,6 @@ namespace Emulator {
             { "examine"     , &CPUDebugger::commandExamineAddress },
         };
 
-        //std::cout << "Command: " << t_command << " (" << t_command.length() << ")\n";
         if (t_command.length() == 0) {
             if (m_lastCommand.length() == 0) {
                 return CommandReturnCode::OKAY;
@@ -126,9 +125,6 @@ namespace Emulator {
     CPUDebugger::CommandReturnCode CPUDebugger::commandContinue(const std::vector<std::string>& t_args) {
         bool done = false;
         while (!done) {
-            //std::cout << "0x"; printAsHex(m_cpu.m_pc); std::cout << ": \n";
-            //printDisassembledInstruction(m_cpu.m_pc);
-
             const Address previousPC = m_cpu.m_pc;
             if (m_cpu.executeInstruction()) {
                 std::cout << "CPU halt\n";

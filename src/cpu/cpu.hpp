@@ -6,9 +6,9 @@
 #include <memory>
 #include <initializer_list>
 
-#include "memory.hpp"
+#include "memory/memory.hpp"
 
-namespace Emulator {
+namespace RNES {
 
     class CPUDebugger;
 
