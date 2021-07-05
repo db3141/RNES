@@ -21,25 +21,26 @@ namespace RNES {
             HALT
         };
 
+        using CArgumentIterator = std::vector<std::string>::const_iterator;
+        using Command = CommandReturnCode (CPUDebugger::*)(CArgumentIterator, CArgumentIterator);
+        
         CommandReturnCode executeCommand(const std::string& t_command);
 
-        CommandReturnCode commandStep(const std::vector<std::string>& t_args);
-        CommandReturnCode commandContinue(const std::vector<std::string>& t_args);
+        CommandReturnCode commandStep(CArgumentIterator t_argsStart, CArgumentIterator t_argsEnd);
+        CommandReturnCode commandContinue(CArgumentIterator t_argsStart, CArgumentIterator t_argsEnd);
 
-        CommandReturnCode commandPrintRegisters(const std::vector<std::string>& t_args);
+        CommandReturnCode commandPrintRegisters(CArgumentIterator t_argsStart, CArgumentIterator t_argsEnd);
 
-        CommandReturnCode commandQuit(const std::vector<std::string>& t_args);
+        CommandReturnCode commandQuit(CArgumentIterator t_argsStart, CArgumentIterator t_argsEnd);
 
-        CommandReturnCode commandSetBreakpoint(const std::vector<std::string>& t_args);
-        CommandReturnCode commandRemoveBreakpoint(const std::vector<std::string>& t_args);
-        CommandReturnCode commandListBreakpoints(const std::vector<std::string>& t_args);
+        CommandReturnCode commandSetBreakpoint(CArgumentIterator t_argsStart, CArgumentIterator t_argsEnd);
+        CommandReturnCode commandRemoveBreakpoint(CArgumentIterator t_argsStart, CArgumentIterator t_argsEnd);
+        CommandReturnCode commandListBreakpoints(CArgumentIterator t_argsStart, CArgumentIterator t_argsEnd);
 
-        CommandReturnCode commandDecodeCurrentInstruction(const std::vector<std::string>& t_args);
-        CommandReturnCode commandDisassembleInstructions(const std::vector<std::string>& t_args);
+        CommandReturnCode commandDecodeCurrentInstruction(CArgumentIterator t_argsStart, CArgumentIterator t_argsEnd);
+        CommandReturnCode commandDisassembleInstructions(CArgumentIterator t_argsStart, CArgumentIterator t_argsEnd);
 
-        CommandReturnCode commandExamineAddress(const std::vector<std::string>& t_args);
-
-        using Command = CommandReturnCode (CPUDebugger::*)(const std::vector<std::string>&);
+        CommandReturnCode commandExamineAddress(CArgumentIterator t_argsStart, CArgumentIterator t_argsEnd);
 
         size_t printDisassembledInstruction(Address t_address) const;
 
