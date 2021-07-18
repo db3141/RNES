@@ -11,6 +11,8 @@ add_library(core STATIC
     memory/memory.hpp
 )
 
+set_target_flags(core)
+
 message("${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
