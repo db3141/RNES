@@ -1,9 +1,9 @@
 #include <array>
-#include <cassert>
 #include <iostream>
 #include <iomanip>
 #include <stdexcept>
 
+#include "assert.hpp"
 #include "cpu.hpp"
 
 namespace RNES {
@@ -312,11 +312,7 @@ namespace RNES {
         const Word opcode = m_memory->readWord(m_pc);
         const InstructionInfo info = INSTRUCTION_TABLE[opcode];
 
-        // TODO: change to assert
-        if (info.instruction == nullptr) {
-            printRegisters();
-            abort();
-        }
+        ASSERT(info.instruction != nullptr, "Invalid opcode");
         
         // call the function obtained from the table
         (this->*info.instruction)(info.addressMode);
@@ -367,7 +363,7 @@ namespace RNES {
     CPU::WordReference CPU::getWordArgument(AddressMode t_mode) {
         switch(t_mode) {
             case AddressMode::IMPLICIT:
-                assert("Shouldn't be here");
+                ASSERT(false, "shouldn't be here");
 
             case AddressMode::ACCUMULATOR:
                 return WordReference(*this, &m_acc);
@@ -385,7 +381,7 @@ namespace RNES {
                 return WordReference(*this, (m_memory->readWord(m_pc + 1) + m_y) % 0x0100U);
 
             case AddressMode::RELATIVE:
-                assert("Relative addressing should use getAddressArgument");
+                ASSERT(false, "Relative addressing should use getAddressArgument");
 
             case AddressMode::ABSOLUTE:
                 return WordReference(*this, m_memory->readDWord(m_pc + 1));
@@ -397,7 +393,7 @@ namespace RNES {
                 return WordReference(*this, m_memory->readDWord(m_pc + 1) + m_y);
 
             case AddressMode::INDIRECT:
-                assert("Indirect addressing should use getAddressArgument");
+                ASSERT(false, "Indirect addressing should use getAddressArgument");
 
             case AddressMode::INDEXED_INDIRECT: {
                 const Address zeroPageAddress = (m_memory->readWord(m_pc + 1) + m_x) % 0x0100U;
@@ -410,7 +406,7 @@ namespace RNES {
             }
 
             default:
-                assert("Invalid address mode");
+                ASSERT(false, "Invalid address mode");
         }
 
         throw std::exception();
@@ -419,13 +415,13 @@ namespace RNES {
     Address CPU::getAddressArgument(AddressMode t_mode) {
         switch(t_mode) {
             case AddressMode::IMPLICIT:
-                assert("Shouldn't be here");
+                ASSERT(false, "shouldn't be here");
 
             case AddressMode::ACCUMULATOR:
-                assert("Accumulator addressing should use getWordArgument");
+                ASSERT(false, "Accumulator addressing should use getWordArgument");
 
             case AddressMode::IMMEDIATE:
-                assert("Immediate addressing should use getWordArgument");
+                ASSERT(false, "Immediate addressing should use getWordArgument");
 
             case AddressMode::ZERO_PAGE:
                 return m_memory->readWord(m_pc + 1);
@@ -462,10 +458,9 @@ namespace RNES {
             }
 
             default:
-                assert("Invalid address mode");
+                ASSERT(false, "Invalid address mode");
+                exit(EXIT_FAILURE);
         }
-
-        abort();
     }
 
     void CPU::generateIRQ() {
@@ -483,7 +478,7 @@ namespace RNES {
     void CPU::handleInterrupts() {
         if (m_interruptFlags.nmi) {
             m_interruptFlags.nmi = false;
-            assert(false /* TODO */);
+            ASSERT(false, "TODO: implement this");
         }
         else if (m_interruptFlags.brk) {
             m_interruptFlags.brk = false;
@@ -498,7 +493,7 @@ namespace RNES {
         }
         else if (m_interruptFlags.irq && getFlag(StatusFlag::INTERRUPT_DISABLE)) {
             m_interruptFlags.irq = false;
-            assert(false /* TODO */);
+            ASSERT(false, "TODO: implement this");
         }
     }
 
@@ -557,7 +552,7 @@ namespace RNES {
             return m_cpu.m_memory->readWord(*addressPointer);
         }
         else {
-            assert(/* Tried to use invalid WordReference */ false);
+            ASSERT(false, "Tried to use invalid WordReference");
         }
     }
 
@@ -569,7 +564,7 @@ namespace RNES {
             m_cpu.m_memory->writeWord(*val, t_value);
         }
         else {
-            assert(/* Tried to use invalid WordReference */ false);
+            ASSERT(false, "Tried to use invalid WordReference");
         }
     }
 

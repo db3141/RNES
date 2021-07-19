@@ -1,6 +1,6 @@
-#include <cassert>
 #include <fstream>
 
+#include "assert.hpp"
 #include "ram.hpp"
 
 namespace RNES {
@@ -11,7 +11,7 @@ namespace RNES {
 
     RAM::RAM(const char* t_path) : m_ram() {
         std::ifstream fileStream(t_path, std::ios::binary | std::ios::in);
-        assert(fileStream.is_open());
+        ASSERT(fileStream.is_open(), "TODO: change this");
         fileStream.read(reinterpret_cast<char*>(m_ram.data()), ADDRESS_SPACE_SIZE);
     }
 

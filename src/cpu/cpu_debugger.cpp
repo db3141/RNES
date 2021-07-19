@@ -1,11 +1,11 @@
 #include <algorithm>
-#include <cassert>
 #include <iostream>
 #include <iomanip>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include "assert.hpp"
 #include "cpu.hpp"
 #include "cpu_debugger.hpp"
 
@@ -45,7 +45,7 @@ namespace RNES {
                     done = true;
                     break;
                 default:
-                    assert(false /* shouldn't be here */);
+                    ASSERT(false, "shouldn't be here");
             }
         }    
     }
@@ -673,7 +673,7 @@ namespace RNES {
                 break;
 
             default:
-                assert(false /* Shouldn't be here */);
+                ASSERT(false, "shouldn't be here");
         }
         std::cout << '\n';
         return AMOUNT_TABLE[static_cast<size_t>(instructionInfo.mode)];

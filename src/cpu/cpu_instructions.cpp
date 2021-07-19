@@ -1,5 +1,4 @@
-#include <cassert>
-
+#include "assert.hpp"
 #include "cpu.hpp"
 
 namespace RNES { 
@@ -65,7 +64,7 @@ namespace RNES {
 
 
     void CPU::instructionTAX(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
 		m_x = m_acc;
 
@@ -76,7 +75,7 @@ namespace RNES {
 	}
 
     void CPU::instructionTAY(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
         m_y = m_acc;
 
@@ -87,7 +86,7 @@ namespace RNES {
 	}
 
     void CPU::instructionTXA(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
         m_acc = m_x;
 
@@ -98,7 +97,7 @@ namespace RNES {
 	}
 
     void CPU::instructionTYA(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
         m_acc = m_y;
 
@@ -109,7 +108,7 @@ namespace RNES {
 	}
 
     void CPU::instructionTSX(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
         m_x = m_sp;
 
@@ -120,21 +119,21 @@ namespace RNES {
 	}
 
     void CPU::instructionTXS(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
         m_sp = m_x;
         m_pc += instructionSize(t_addressMode);
 	}
 
     void CPU::instructionPHA(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
         stackPushWord(m_acc);
         m_pc += instructionSize(t_addressMode);
 	}
 
     void CPU::instructionPHP(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
         const Word value = m_st | Word(StatusFlag::B1) | Word(StatusFlag::B2);
         stackPushWord(value);
@@ -142,7 +141,7 @@ namespace RNES {
 	}
 
     void CPU::instructionPLA(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
         m_acc = stackPopWord();
 
@@ -153,7 +152,7 @@ namespace RNES {
 	}
 
     void CPU::instructionPLP(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
         m_st = stackPopWord() & 0b11001111; // mask out b flags
 
@@ -346,7 +345,7 @@ namespace RNES {
 	}
 
     void CPU::instructionINX(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
 		m_x++;
 
@@ -357,7 +356,7 @@ namespace RNES {
 	}
 
     void CPU::instructionINY(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
         m_y++;
 
@@ -380,7 +379,7 @@ namespace RNES {
 	}
 
     void CPU::instructionDEX(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
         m_x--;
 
@@ -391,7 +390,7 @@ namespace RNES {
 	}
 
     void CPU::instructionDEY(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
         m_y--;
 
@@ -549,49 +548,49 @@ namespace RNES {
 
 
     void CPU::instructionCLC(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
 		setFlag(StatusFlag::CARRY, 0);
         m_pc += instructionSize(t_addressMode);
 	}
 
     void CPU::instructionCLD(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
 		setFlag(StatusFlag::DECIMAL, 0);
         m_pc += instructionSize(t_addressMode);
 	}
 
     void CPU::instructionCLI(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
 		setFlag(StatusFlag::INTERRUPT_DISABLE, 0);
         m_pc += instructionSize(t_addressMode);
 	}
 
     void CPU::instructionCLV(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
 		setFlag(StatusFlag::OVERFLOW, 0);
         m_pc += instructionSize(t_addressMode);
 	}
 
     void CPU::instructionSEC(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
 		setFlag(StatusFlag::CARRY, 1);
         m_pc += instructionSize(t_addressMode);
 	}
 
     void CPU::instructionSED(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
 		setFlag(StatusFlag::DECIMAL, 1);
         m_pc += instructionSize(t_addressMode);
 	}
 
     void CPU::instructionSEI(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
 		setFlag(StatusFlag::INTERRUPT_DISABLE, 1);
         m_pc += instructionSize(t_addressMode);
@@ -599,20 +598,20 @@ namespace RNES {
 
 
     void CPU::instructionBRK(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
         generateBRK();
         m_pc += instructionSize(t_addressMode);
 	}
 
     void CPU::instructionNOP(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
 		m_pc += instructionSize(t_addressMode);
 	}
 
     void CPU::instructionRTI(AddressMode t_addressMode) {
-        assert(t_addressMode == AddressMode::IMPLICIT);
+        ASSERT(t_addressMode == AddressMode::IMPLICIT, "Non implicit address mode for implicit instruction");
 
 	    m_st = stackPopWord() & 0b11001111;
         m_pc = stackPopDWord();
