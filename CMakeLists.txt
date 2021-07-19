@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 
 project(RNES VERSION 0.0.1 LANGUAGES CXX)
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
 set(CMAKE_CXX_STANDARD 20)
 
 set(ALLOWABLE_BUILD_TYPES "Debug" "Release")
@@ -21,12 +23,10 @@ if(NOT GENERATOR_IS_MULTI_CONFIG)
         set(CMAKE_BUILD_TYPE ${DEFAULT_BUILD_TYPE} CACHE STRING "" FORCE)
     endif()
 
-    if(CMAKE_BUILD_TYPE AND (NOT CMAKE_BUILD_TYPE IN_LIST ALLOWABLE_BUILD_TYPES))
+    if(NOT CMAKE_BUILD_TYPE IN_LIST ALLOWABLE_BUILD_TYPES)
         message(FATAL_ERROR "${CMAKE_BUILD_TYPE} is not a valid build type")
     endif()
 endif()
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 set(ENABLED_WARNINGS "-Wall" "-Wextra" "-Wpedantic")
 option(WARNINGS_AS_ERRORS ON)
@@ -34,10 +34,6 @@ option(WARNINGS_AS_ERRORS ON)
 if(WARNINGS_AS_ERRORS)
     message(STATUS "Warnings will be treated as errors")
     list(APPEND ENABLED_WARNINGS "-Werror")
-endif()
-
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release")
 endif()
 
 function(set_target_flags target)

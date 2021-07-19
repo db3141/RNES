@@ -488,7 +488,6 @@ namespace RNES {
 
             setFlag(StatusFlag::INTERRUPT_DISABLE, true);
 
-            std::cout << std::hex << m_memory->readDWord(0xFFFE) << '\n';
             m_pc = m_memory->readDWord(0xFFFE);           
         }
         else if (m_interruptFlags.irq && getFlag(StatusFlag::INTERRUPT_DISABLE)) {
