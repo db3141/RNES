@@ -1,6 +1,6 @@
 #include "cpu/cpu.hpp"
 #include "cpu/cpu_debugger.hpp"
-#include "memory/ram.hpp"
+#include "cpu_test_controller.hpp"
 
 #include <iostream>
 
@@ -10,8 +10,9 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    auto ramController = std::make_shared<RNES::RAM>(argv[1]);
-    RNES::CPU cpu(ramController, 0x0400U);
+    auto controller = std::make_unique<RNES::CPUTestController>(argv[1]);
+    RNES::CPU cpu(0x0400U);
+    cpu.setController(std::move(controller));
 
     RNES::CPUDebugger debugger(cpu);
     debugger.start();

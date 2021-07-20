@@ -1,7 +1,7 @@
-#ifndef RNES_MEMORY_INCLUDED
-#define RNES_MEMORY_INCLUDED
+#ifndef RNES_CPU_CONTROLLER_INCLUDED
+#define RNES_CPU_CONTROLLER_INCLUDED
 
-#include <stddef.h>
+#include "defines.hpp"
 
 namespace RNES {
 
@@ -12,9 +12,9 @@ namespace RNES {
 
     const size_t ADDRESS_SPACE_SIZE = 1ULL << (8ULL * sizeof(Address));
 
-    class Memory {
+    class CPUController {
     public:
-        virtual ~Memory() {}
+        virtual ~CPUController() {}
 
         virtual Word readWord(Address t_address) const = 0;
         virtual void writeWord(Address t_address, Word t_value) = 0;

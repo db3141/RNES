@@ -17,8 +17,8 @@ namespace RNES {
         }
     }
 
-    CPU::CPU(std::shared_ptr<Memory> t_memory, Address t_programCounter)
-        : m_memory(t_memory)
+    CPU::CPU(Address t_programCounter)
+        : m_controller(nullptr)
         , m_pc(t_programCounter)
         , m_sp(0x00)
         , m_acc(0x00)
@@ -30,9 +30,13 @@ namespace RNES {
         ;
     }
 
+    void CPU::setController(std::unique_ptr<CPUController> t_controller) {
+        m_controller = std::move(t_controller);
+    }
+
     void CPU::printRegisters() const {
         std::cout
-            << "PC:  0x" << std::hex << std::setw(4) << std::setfill('0') << (int)m_pc << " (0x" << (int)m_memory->readWord(m_pc) << ")\n"
+            << "PC:  0x" << std::hex << std::setw(4) << std::setfill('0') << (int)m_pc << " (0x" << (int)m_controller->readWord(m_pc) << ")\n"
             << "SP:  0x" << std::hex << std::setw(2) << std::setfill('0') << (int)m_sp  << '\n'
             << "ACC: 0x" << std::hex << std::setw(2) << std::setfill('0') << (int)m_acc << '\n'
             << "X:   0x" << std::hex << std::setw(2) << std::setfill('0') << (int)m_x   << '\n'
@@ -309,7 +313,7 @@ namespace RNES {
 
         handleInterrupts();
 
-        const Word opcode = m_memory->readWord(m_pc);
+        const Word opcode = m_controller->readWord(m_pc);
         const InstructionInfo info = INSTRUCTION_TABLE[opcode];
 
         ASSERT(info.instruction != nullptr, "Invalid opcode");
@@ -372,37 +376,37 @@ namespace RNES {
                 return WordReference(*this, m_pc + 1);
 
             case AddressMode::ZERO_PAGE:
-                return WordReference(*this, m_memory->readWord(m_pc + 1));
+                return WordReference(*this, m_controller->readWord(m_pc + 1));
 
             case AddressMode::ZERO_PAGE_X:
-                return WordReference(*this, (m_memory->readWord(m_pc + 1) + m_x) % 0x0100U);
+                return WordReference(*this, (m_controller->readWord(m_pc + 1) + m_x) % 0x0100U);
 
             case AddressMode::ZERO_PAGE_Y:
-                return WordReference(*this, (m_memory->readWord(m_pc + 1) + m_y) % 0x0100U);
+                return WordReference(*this, (m_controller->readWord(m_pc + 1) + m_y) % 0x0100U);
 
             case AddressMode::RELATIVE:
                 ASSERT(false, "Relative addressing should use getAddressArgument");
 
             case AddressMode::ABSOLUTE:
-                return WordReference(*this, m_memory->readDWord(m_pc + 1));
+                return WordReference(*this, m_controller->readDWord(m_pc + 1));
 
             case AddressMode::ABSOLUTE_X:
-                return WordReference(*this, m_memory->readDWord(m_pc + 1) + m_x);
+                return WordReference(*this, m_controller->readDWord(m_pc + 1) + m_x);
 
             case AddressMode::ABSOLUTE_Y:
-                return WordReference(*this, m_memory->readDWord(m_pc + 1) + m_y);
+                return WordReference(*this, m_controller->readDWord(m_pc + 1) + m_y);
 
             case AddressMode::INDIRECT:
                 ASSERT(false, "Indirect addressing should use getAddressArgument");
 
             case AddressMode::INDEXED_INDIRECT: {
-                const Address zeroPageAddress = (m_memory->readWord(m_pc + 1) + m_x) % 0x0100U;
-                return WordReference(*this, m_memory->readDWord(zeroPageAddress));
+                const Address zeroPageAddress = (m_controller->readWord(m_pc + 1) + m_x) % 0x0100U;
+                return WordReference(*this, m_controller->readDWord(zeroPageAddress));
             }
 
             case AddressMode::INDIRECT_INDEXED: {
-                const Address zeroPageAddress = m_memory->readWord(m_pc + 1);
-                return WordReference(*this, m_memory->readDWord(zeroPageAddress) + m_y);
+                const Address zeroPageAddress = m_controller->readWord(m_pc + 1);
+                return WordReference(*this, m_controller->readDWord(zeroPageAddress) + m_y);
             }
 
             default:
@@ -424,37 +428,37 @@ namespace RNES {
                 ASSERT(false, "Immediate addressing should use getWordArgument");
 
             case AddressMode::ZERO_PAGE:
-                return m_memory->readWord(m_pc + 1);
+                return m_controller->readWord(m_pc + 1);
 
             case AddressMode::ZERO_PAGE_X:
-                return (m_memory->readWord(m_pc + 1) + m_x) % 0x0100U;
+                return (m_controller->readWord(m_pc + 1) + m_x) % 0x0100U;
 
             case AddressMode::ZERO_PAGE_Y:
-                return (m_memory->readWord(m_pc + 1) + m_y) % 0x0100U;
+                return (m_controller->readWord(m_pc + 1) + m_y) % 0x0100U;
 
             case AddressMode::RELATIVE:
-                return m_pc + signExtendWord(m_memory->readWord(m_pc + 1));
+                return m_pc + signExtendWord(m_controller->readWord(m_pc + 1));
 
             case AddressMode::ABSOLUTE:
-                return m_memory->readDWord(m_pc + 1);
+                return m_controller->readDWord(m_pc + 1);
 
             case AddressMode::ABSOLUTE_X:
-                return m_memory->readDWord(m_pc + 1) + m_x;
+                return m_controller->readDWord(m_pc + 1) + m_x;
 
             case AddressMode::ABSOLUTE_Y:
-                return m_memory->readDWord(m_pc + 1) + m_y;
+                return m_controller->readDWord(m_pc + 1) + m_y;
 
             case AddressMode::INDIRECT:
-                return m_memory->readDWord(m_memory->readDWord(m_pc + 1));
+                return m_controller->readDWord(m_controller->readDWord(m_pc + 1));
 
             case AddressMode::INDEXED_INDIRECT: {
-                const Address zeroPageAddress = (m_memory->readWord(m_pc + 1) + m_x) % 0x0100U;
-                return m_memory->readDWord(zeroPageAddress);
+                const Address zeroPageAddress = (m_controller->readWord(m_pc + 1) + m_x) % 0x0100U;
+                return m_controller->readDWord(zeroPageAddress);
             }
 
             case AddressMode::INDIRECT_INDEXED: {
-                const Address zeroPageAddress = m_memory->readWord(m_pc + 1);
-                return m_memory->readDWord(zeroPageAddress) + m_y;
+                const Address zeroPageAddress = m_controller->readWord(m_pc + 1);
+                return m_controller->readDWord(zeroPageAddress) + m_y;
             }
 
             default:
@@ -488,7 +492,7 @@ namespace RNES {
 
             setFlag(StatusFlag::INTERRUPT_DISABLE, true);
 
-            m_pc = m_memory->readDWord(0xFFFE);           
+            m_pc = m_controller->readDWord(0xFFFE);           
         }
         else if (m_interruptFlags.irq && getFlag(StatusFlag::INTERRUPT_DISABLE)) {
             m_interruptFlags.irq = false;
@@ -497,19 +501,19 @@ namespace RNES {
     }
 
     void CPU::stackPushWord(Word t_word) {
-        m_memory->writeWord(m_sp + 0x0100U, t_word);
+        m_controller->writeWord(m_sp + 0x0100U, t_word);
         m_sp--;
     }
 
     Word CPU::stackPopWord() {
         m_sp++;
-        return m_memory->readWord(m_sp + 0x0100U);
+        return m_controller->readWord(m_sp + 0x0100U);
     }
 
     void CPU::stackPushDWord(DWord t_dword) {
-        m_memory->writeWord(m_sp + 0x0100U, (t_dword >> 8) & 0x00FFU);
+        m_controller->writeWord(m_sp + 0x0100U, (t_dword >> 8) & 0x00FFU);
         m_sp--;
-        m_memory->writeWord(m_sp + 0x0100U, (t_dword >> 0) & 0x00FFU);
+        m_controller->writeWord(m_sp + 0x0100U, (t_dword >> 0) & 0x00FFU);
         m_sp--;
     }
 
@@ -517,9 +521,9 @@ namespace RNES {
         DWord result = 0;
 
         m_sp++;
-        result |= m_memory->readWord(m_sp + 0x0100U) << 0;
+        result |= m_controller->readWord(m_sp + 0x0100U) << 0;
         m_sp++;
-        result |= m_memory->readWord(m_sp + 0x0100U) << 8;
+        result |= m_controller->readWord(m_sp + 0x0100U) << 8;
 
         return result;
     }
@@ -548,7 +552,7 @@ namespace RNES {
             return **wordDPointer;
         }
         else if (addressPointer != nullptr) {
-            return m_cpu.m_memory->readWord(*addressPointer);
+            return m_cpu.m_controller->readWord(*addressPointer);
         }
         else {
             ASSERT(false, "Tried to use invalid WordReference");
@@ -560,7 +564,7 @@ namespace RNES {
             **val = t_value;
         }
         else if (Address* val = std::get_if<Address>(&m_location)) {
-            m_cpu.m_memory->writeWord(*val, t_value);
+            m_cpu.m_controller->writeWord(*val, t_value);
         }
         else {
             ASSERT(false, "Tried to use invalid WordReference");

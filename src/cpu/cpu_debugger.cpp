@@ -311,7 +311,7 @@ namespace RNES {
             std::cout << "0x"; printAsHex(static_cast<Address>(address + i * BYTES_PER_LINE)); std::cout << ": ";
 
             for (size_t j = 0; j < BYTES_PER_LINE; j++) {
-                printAsHex(m_cpu.m_memory->readWord(static_cast<Address>(address + (i * BYTES_PER_LINE) + j))); std::cout << ' ';
+                printAsHex(m_cpu.m_controller->readWord(static_cast<Address>(address + (i * BYTES_PER_LINE) + j))); std::cout << ' ';
             }
             std::cout << '\n';
         }
@@ -322,7 +322,7 @@ namespace RNES {
 
             std::cout << "0x"; printAsHex(startAddress); std::cout << ": ";
             for (size_t i = 0; i < numberOfLeftoverBytes; i++) {
-                printAsHex(m_cpu.m_memory->readWord(static_cast<Address>(startAddress + i))); std::cout << ' ';
+                printAsHex(m_cpu.m_controller->readWord(static_cast<Address>(startAddress + i))); std::cout << ' ';
             }
         }
         std::cout << '\n';
@@ -618,7 +618,7 @@ namespace RNES {
             { "INVALID", CPU::AddressMode::IMPLICIT }
         }};
 
-        const InstructionInfo instructionInfo = DECODED_OPCODES[m_cpu.m_memory->readWord(t_address)];
+        const InstructionInfo instructionInfo = DECODED_OPCODES[m_cpu.m_controller->readWord(t_address)];
         std::cout << instructionInfo.name << ' ';
         switch (instructionInfo.mode) {
             case CPU::AddressMode::IMPLICIT:
@@ -629,47 +629,47 @@ namespace RNES {
                 break;
 
             case CPU::AddressMode::IMMEDIATE:
-                std::cout << "#$"; printAsHex(m_cpu.m_memory->readWord(t_address + 1));
+                std::cout << "#$"; printAsHex(m_cpu.m_controller->readWord(t_address + 1));
                 break;
 
             case CPU::AddressMode::ZERO_PAGE:
-                std::cout << "$"; printAsHex(m_cpu.m_memory->readWord(t_address + 1));
+                std::cout << "$"; printAsHex(m_cpu.m_controller->readWord(t_address + 1));
                 break;
 
             case CPU::AddressMode::ZERO_PAGE_X:
-                std::cout << "$"; printAsHex(m_cpu.m_memory->readWord(t_address + 1)); std::cout << ",X";
+                std::cout << "$"; printAsHex(m_cpu.m_controller->readWord(t_address + 1)); std::cout << ",X";
                 break;
 
             case CPU::AddressMode::ZERO_PAGE_Y:
-                std::cout << "$"; printAsHex(m_cpu.m_memory->readWord(t_address + 1)); std::cout << ",Y";
+                std::cout << "$"; printAsHex(m_cpu.m_controller->readWord(t_address + 1)); std::cout << ",Y";
                 break;
 
             case CPU::AddressMode::RELATIVE:
-                std::cout << "$"; printAsHex(m_cpu.m_memory->readWord(t_address + 1));
+                std::cout << "$"; printAsHex(m_cpu.m_controller->readWord(t_address + 1));
                 break;
 
             case CPU::AddressMode::ABSOLUTE:
-                std::cout << "$"; printAsHex(m_cpu.m_memory->readDWord(t_address + 1));
+                std::cout << "$"; printAsHex(m_cpu.m_controller->readDWord(t_address + 1));
                 break;
 
             case CPU::AddressMode::ABSOLUTE_X:
-                std::cout << "$"; printAsHex(m_cpu.m_memory->readDWord(t_address + 1)); std::cout << ",X";
+                std::cout << "$"; printAsHex(m_cpu.m_controller->readDWord(t_address + 1)); std::cout << ",X";
                 break;
 
             case CPU::AddressMode::ABSOLUTE_Y:
-                std::cout << "$"; printAsHex(m_cpu.m_memory->readDWord(t_address + 1)); std::cout << ",Y";
+                std::cout << "$"; printAsHex(m_cpu.m_controller->readDWord(t_address + 1)); std::cout << ",Y";
                 break;
 
             case CPU::AddressMode::INDIRECT:
-                std::cout << "($"; printAsHex(m_cpu.m_memory->readDWord(t_address + 1)); std::cout << ")";
+                std::cout << "($"; printAsHex(m_cpu.m_controller->readDWord(t_address + 1)); std::cout << ")";
                 break;
 
             case CPU::AddressMode::INDEXED_INDIRECT:
-                std::cout << "($"; printAsHex(m_cpu.m_memory->readWord(t_address + 1)); std::cout << ",X)";
+                std::cout << "($"; printAsHex(m_cpu.m_controller->readWord(t_address + 1)); std::cout << ",X)";
                 break;
 
             case CPU::AddressMode::INDIRECT_INDEXED:
-                std::cout << "($"; printAsHex(m_cpu.m_memory->readWord(t_address + 1)); std::cout << "),Y";
+                std::cout << "($"; printAsHex(m_cpu.m_controller->readWord(t_address + 1)); std::cout << "),Y";
                 break;
 
             default:

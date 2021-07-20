@@ -1,12 +1,12 @@
-#ifndef CPU_6502_INCLUDED
-#define CPU_6502_INCLUDED
+#ifndef RNES_CPU_6502_INCLUDED
+#define RNES_CPU_6502_INCLUDED
 
 #include <variant>
 #include <set>
 #include <memory>
 #include <initializer_list>
 
-#include "memory/memory.hpp"
+#include "cpu_controller.hpp"
 
 namespace RNES {
 
@@ -16,7 +16,9 @@ namespace RNES {
     public:
         friend CPUDebugger;
 
-        CPU(std::shared_ptr<Memory> t_memory, Address t_programCounter=0x0000U);
+        CPU(Address t_programCounter=0x0000U);
+
+        void setController(std::unique_ptr<CPUController> t_controller);
 
         bool executeInstruction();
         void printRegisters() const;
@@ -79,7 +81,7 @@ namespace RNES {
         };
 
         //----- Members -----//
-        std::shared_ptr<Memory> m_memory;
+        std::unique_ptr<CPUController> m_controller;
 
         Address m_pc;
         Word m_sp;
