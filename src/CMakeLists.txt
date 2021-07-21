@@ -11,6 +11,7 @@ add_library(core STATIC
     cpu/cpu_debugger.cpp
     cpu/cpu_debugger.hpp
 
+    ppu/ppu.cpp
     ppu/ppu.hpp
 
     ppu/ppu_controller.hpp

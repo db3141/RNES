@@ -2,6 +2,7 @@
 #define RNES_PPU_INCLUDED
 
 #include <array>
+#include <memory>
 
 #include "ppu_controller.hpp"
 

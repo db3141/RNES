@@ -7,11 +7,13 @@ namespace RNES {
 
     class PPUController {
     public:
+        virtual ~PPUController() {}
+
         virtual Word readWord(Address t_address) = 0;
         virtual void writeWord(Address t_address, Word t_value) = 0; 
 
         virtual void sendVBlankNMI() = 0;
-    }
+    };
 
 }
 

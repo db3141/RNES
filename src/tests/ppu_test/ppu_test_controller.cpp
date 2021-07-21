@@ -1,3 +1,5 @@
+#include <fstream>
+
 #include "assert.hpp"
 #include "ppu_test_controller.hpp"
 
@@ -5,6 +7,12 @@ namespace RNES {
 
     PPUTestController::PPUTestController() : m_memory() {
         ;
+    }
+
+    PPUTestController::PPUTestController(const char* t_file) : m_memory() {
+        std::ifstream fileStream(t_file, std::ios::binary | std::ios::in);
+        ASSERT(fileStream.is_open(), "Couldn't find file");
+        fileStream.read(reinterpret_cast<char*>(m_memory.data()), PPU_ADDRESS_SPACE_SIZE);
     }
 
     Word PPUTestController::readWord(Address t_address) {
