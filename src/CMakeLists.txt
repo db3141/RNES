@@ -15,6 +15,9 @@ add_library(core STATIC
     ppu/ppu.hpp
 
     ppu/ppu_controller.hpp
+
+    ppu/surface_wrapper.cpp
+    ppu/surface_wrapper.hpp
 )
 
 set_target_flags(core)
