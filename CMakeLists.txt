@@ -4,6 +4,11 @@ project(RNES VERSION 0.0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
+# Dependencies
+find_package(SDL2 REQUIRED)
+
+
+# Build configurations
 set(ALLOWABLE_BUILD_TYPES "Debug" "Release")
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS ${ALLOWABLE_BUILD_TYPES})
 set(DEFAULT_BUILD_TYPE Debug)
@@ -34,6 +39,8 @@ if(WARNINGS_AS_ERRORS)
     list(APPEND ENABLED_WARNINGS "-Werror")
 endif()
 
+
+# Sets the corresponding build type flags for the target
 function(set_target_flags target)
     message(STATUS "Adding flags to target '${target}'")
     message(STATUS "Enabled warnings: ${ENABLED_WARNINGS}")
