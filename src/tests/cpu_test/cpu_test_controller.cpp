@@ -3,7 +3,7 @@
 #include "assert.hpp"
 #include "cpu_test_controller.hpp"
 
-namespace RNES {
+namespace RNES::Test {
 
     CPUTestController::CPUTestController() : m_memory() {
         ;
@@ -12,7 +12,7 @@ namespace RNES {
     CPUTestController::CPUTestController(const char* t_path) : m_memory() {
         std::ifstream fileStream(t_path, std::ios::binary | std::ios::in);
         ASSERT(fileStream.is_open(), "TODO: change this");
-        fileStream.read(reinterpret_cast<char*>(m_memory.data()), ADDRESS_SPACE_SIZE);
+        fileStream.read(reinterpret_cast<char*>(m_memory.data()), CPU::ADDRESS_SPACE_SIZE);
     }
 
     Word CPUTestController::readWord(Address t_address) const {

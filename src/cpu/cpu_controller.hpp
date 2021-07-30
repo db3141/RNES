@@ -3,7 +3,7 @@
 
 #include "defines.hpp"
 
-namespace RNES {
+namespace RNES::CPU {
 
     using Word = uint8_t;
     using DWord = uint16_t;

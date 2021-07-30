@@ -5,9 +5,9 @@
 
 #include "cpu/cpu_controller.hpp"
 
-namespace RNES {
+namespace RNES::Test {
 
-    class CPUTestController : public CPUController {
+    class CPUTestController : public CPU::CPUController {
     public:
         CPUTestController();
         CPUTestController(const char* t_path);
@@ -19,7 +19,7 @@ namespace RNES {
         void writeDWord(Address t_address, DWord t_value) override;
 
     private:
-        std::array<Word, ADDRESS_SPACE_SIZE> m_memory;
+        std::array<Word, CPU::ADDRESS_SPACE_SIZE> m_memory;
     };
 
 }

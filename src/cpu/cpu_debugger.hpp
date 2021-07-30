@@ -7,7 +7,7 @@
 
 #include "cpu.hpp"
 
-namespace RNES {
+namespace RNES::CPU {
 
     class CPUDebugger {
     public:
@@ -23,7 +23,7 @@ namespace RNES {
 
         using CArgumentIterator = std::vector<std::string>::const_iterator;
         using Command = CommandReturnCode (CPUDebugger::*)(CArgumentIterator, CArgumentIterator);
-        
+
         CommandReturnCode executeCommand(const std::string& t_command);
 
         CommandReturnCode commandStep(CArgumentIterator t_argsStart, CArgumentIterator t_argsEnd);

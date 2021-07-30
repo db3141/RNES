@@ -14,6 +14,7 @@ namespace RNES {
     PPU::PPU()
         : m_oam()
         , m_controller(nullptr)
+        , m_outputSurface(256, 240) // TODO: change this
     {
         ;
     }
@@ -31,7 +32,7 @@ namespace RNES {
             uint8_t getColor(size_t t_row, size_t t_column) {
                 return colors[TILE_WIDTH * t_row + t_column];
             }
-        };    
+        };
 
         std::array<Tile, PATTERN_TABLE_TILE_COUNT> tiles;
 
@@ -79,6 +80,14 @@ namespace RNES {
             std::cout << "----------------\n";
         }
 
+    }
+
+    void PPU::cycle() {
+        // TODO
+    }
+
+    SDL_Surface* PPU::getScreenOutput() {
+        return m_outputSurface.getUnderlyingSurface();
     }
 
 }

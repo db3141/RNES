@@ -10,11 +10,11 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    auto controller = std::make_unique<RNES::CPUTestController>(argv[1]);
-    RNES::CPU cpu(0x0400U);
+    auto controller = std::make_unique<RNES::Test::CPUTestController>(argv[1]);
+    RNES::CPU::CPU cpu(0x0400U);
     cpu.setController(std::move(controller));
 
-    RNES::CPUDebugger debugger(cpu);
+    RNES::CPU::CPUDebugger debugger(cpu);
     debugger.start();
 
     return 0;

@@ -9,9 +9,9 @@
 #include "cpu.hpp"
 #include "cpu_debugger.hpp"
 
-namespace RNES {
+namespace RNES::CPU {
 
-    std::vector<std::string> splitString(const std::string& t_string, char t_delimiter); 
+    std::vector<std::string> splitString(const std::string& t_string, char t_delimiter);
     bool stringToDWord(const std::string& t_string, Address& r_address);
 
     template<typename T>
@@ -20,7 +20,7 @@ namespace RNES {
     }
 
     CPUDebugger::CPUDebugger(CPU& t_cpu)
-        : m_cpu(t_cpu) 
+        : m_cpu(t_cpu)
         , m_breakpoints()
         , m_lastCommand("")
     {
@@ -29,7 +29,7 @@ namespace RNES {
 
     void CPUDebugger::start() {
         bool done = false;
-        
+
         while (!done) {
             std::cout << "[0x"; printAsHex(m_cpu.m_pc); std::cout << "]> ";
 
@@ -47,7 +47,7 @@ namespace RNES {
                 default:
                     ASSERT(false, "shouldn't be here");
             }
-        }    
+        }
     }
 
     CPUDebugger::CommandReturnCode CPUDebugger::executeCommand(const std::string& t_command) {
@@ -121,7 +121,7 @@ namespace RNES {
         if (std::distance(t_argsBegin, t_argsEnd) != 0) {
             std::cerr << "This command takes 0 arguments\n";
             return CommandReturnCode::ERROR;
-        } 
+        }
 
         bool done = false;
         while (!done) {
@@ -225,7 +225,7 @@ namespace RNES {
 
         if (m_breakpoints.empty()) {
             std::cout << "No breakpoints are currently set\n";
-            return CommandReturnCode::OKAY;   
+            return CommandReturnCode::OKAY;
         }
 
         std::cout << "\nBreakpoints\n-----------\n";
@@ -331,344 +331,117 @@ namespace RNES {
     }
 
     size_t CPUDebugger::printDisassembledInstruction(Address t_address) const {
-        struct InstructionInfo {
-            const char* name;
-            CPU::AddressMode mode;
+        static const std::array<const char*, INSTRUCTION_COUNT + 1> INSTRUCTION_STRINGS {
+            "ADC",
+            "AND",
+            "ASL",
+            "BCC",
+            "BCS",
+            "BEQ",
+            "BIT",
+            "BMI",
+            "BNE",
+            "BPL",
+            "BRK",
+            "BVC",
+            "BVS",
+            "CLC",
+            "CLD",
+            "CLI",
+            "CLV",
+            "CMP",
+            "CPX",
+            "CPY",
+            "DEC",
+            "DEX",
+            "DEY",
+            "EOR",
+            "INC",
+            "INX",
+            "INY",
+            "JMP",
+            "JSR",
+            "LDA",
+            "LDX",
+            "LDY",
+            "LSR",
+            "NOP",
+            "ORA",
+            "PHA",
+            "PHP",
+            "PLA",
+            "PLP",
+            "ROL",
+            "ROR",
+            "RTI",
+            "RTS",
+            "SBC",
+            "SEC",
+            "SED",
+            "SEI",
+            "STA",
+            "STX",
+            "STY",
+            "TAX",
+            "TAY",
+            "TSX",
+            "TXA",
+            "TXS",
+            "TYA",
+            "INVALID"
         };
 
-        static const std::array<size_t, CPU::ADDRESS_MODE_COUNT> AMOUNT_TABLE {{
-            1, // IMPLICIT
-
-            1, // ACCUMULATOR
-
-            2, // IMMEDIATE
-
-            2, // ZERO_PAGE
-            2, // ZERO_PAGE_X
-            2, // ZERO_PAGE_Y
-
-            2, // RELATIVE
-
-            3, // ABSOLUTE
-            3, // ABSOLUTE_X
-            3, // ABSOLUTE_Y
-
-            3, //INDIRECT
-
-            2, // INDEXED_INDIRECT
-            2  // INDIRECT_INDEXED
-        }};
-
-        static std::array<InstructionInfo, 256> DECODED_OPCODES = {{
-            { "BRK", CPU::AddressMode::IMPLICIT },
-            { "ORA", CPU::AddressMode::INDEXED_INDIRECT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "ORA", CPU::AddressMode::ZERO_PAGE },
-            { "ASL", CPU::AddressMode::ZERO_PAGE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "PHP", CPU::AddressMode::IMPLICIT },
-            { "ORA", CPU::AddressMode::IMMEDIATE },
-            { "ASL", CPU::AddressMode::ACCUMULATOR },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "ORA", CPU::AddressMode::ABSOLUTE },
-            { "ASL", CPU::AddressMode::ABSOLUTE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "BPL", CPU::AddressMode::RELATIVE },
-            { "ORA", CPU::AddressMode::INDIRECT_INDEXED },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "ORA", CPU::AddressMode::ZERO_PAGE_X },
-            { "ASL", CPU::AddressMode::ZERO_PAGE_X },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "CLC", CPU::AddressMode::IMPLICIT },
-            { "ORA", CPU::AddressMode::ABSOLUTE_Y },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "ORA", CPU::AddressMode::ABSOLUTE_X },
-            { "ASL", CPU::AddressMode::ABSOLUTE_X },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "JSR", CPU::AddressMode::ABSOLUTE },
-            { "AND", CPU::AddressMode::INDEXED_INDIRECT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "BIT", CPU::AddressMode::ZERO_PAGE },
-            { "AND", CPU::AddressMode::ZERO_PAGE },
-            { "ROL", CPU::AddressMode::ZERO_PAGE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "PLP", CPU::AddressMode::IMPLICIT },
-            { "AND", CPU::AddressMode::IMMEDIATE },
-            { "ROL", CPU::AddressMode::ACCUMULATOR },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "BIT", CPU::AddressMode::ABSOLUTE },
-            { "AND", CPU::AddressMode::ABSOLUTE },
-            { "ROL", CPU::AddressMode::ABSOLUTE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "BMI", CPU::AddressMode::RELATIVE },
-            { "AND", CPU::AddressMode::INDIRECT_INDEXED },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "AND", CPU::AddressMode::ZERO_PAGE_X },
-            { "ROL", CPU::AddressMode::ZERO_PAGE_X },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "SEC", CPU::AddressMode::IMPLICIT },
-            { "AND", CPU::AddressMode::ABSOLUTE_Y },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "AND", CPU::AddressMode::ABSOLUTE_X },
-            { "ROL", CPU::AddressMode::ABSOLUTE_X },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "RTI", CPU::AddressMode::IMPLICIT },
-            { "EOR", CPU::AddressMode::INDEXED_INDIRECT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "EOR", CPU::AddressMode::ZERO_PAGE },
-            { "LSR", CPU::AddressMode::ZERO_PAGE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "PHA", CPU::AddressMode::IMPLICIT },
-            { "EOR", CPU::AddressMode::IMMEDIATE },
-            { "LSR", CPU::AddressMode::ACCUMULATOR },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "JMP", CPU::AddressMode::ABSOLUTE },
-            { "EOR", CPU::AddressMode::ABSOLUTE },
-            { "LSR", CPU::AddressMode::ABSOLUTE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "BVC", CPU::AddressMode::RELATIVE },
-            { "EOR", CPU::AddressMode::INDIRECT_INDEXED },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "EOR", CPU::AddressMode::ZERO_PAGE_X },
-            { "LSR", CPU::AddressMode::ZERO_PAGE_X },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "CLI", CPU::AddressMode::IMPLICIT },
-            { "EOR", CPU::AddressMode::ABSOLUTE_Y },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "EOR", CPU::AddressMode::ABSOLUTE_X },
-            { "LSR", CPU::AddressMode::ABSOLUTE_X },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "RTS", CPU::AddressMode::IMPLICIT },
-            { "ADC", CPU::AddressMode::INDEXED_INDIRECT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "ADC", CPU::AddressMode::ZERO_PAGE },
-            { "ROR", CPU::AddressMode::ZERO_PAGE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "PLA", CPU::AddressMode::IMPLICIT },
-            { "ADC", CPU::AddressMode::IMMEDIATE },
-            { "ROR", CPU::AddressMode::ACCUMULATOR },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "JMP", CPU::AddressMode::INDIRECT },
-            { "ADC", CPU::AddressMode::ABSOLUTE },
-            { "ROR", CPU::AddressMode::ABSOLUTE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "BVS", CPU::AddressMode::RELATIVE },
-            { "ADC", CPU::AddressMode::INDIRECT_INDEXED },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "ADC", CPU::AddressMode::ZERO_PAGE_X },
-            { "ROR", CPU::AddressMode::ZERO_PAGE_X },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "SEI", CPU::AddressMode::IMPLICIT },
-            { "ADC", CPU::AddressMode::ABSOLUTE_Y },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "ADC", CPU::AddressMode::ABSOLUTE_X },
-            { "ROR", CPU::AddressMode::ABSOLUTE_X },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "STA", CPU::AddressMode::INDEXED_INDIRECT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "STY", CPU::AddressMode::ZERO_PAGE },
-            { "STA", CPU::AddressMode::ZERO_PAGE },
-            { "STX", CPU::AddressMode::ZERO_PAGE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "DEY", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "TXA", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "STY", CPU::AddressMode::ABSOLUTE },
-            { "STA", CPU::AddressMode::ABSOLUTE },
-            { "STX", CPU::AddressMode::ABSOLUTE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "BCC", CPU::AddressMode::RELATIVE },
-            { "STA", CPU::AddressMode::INDIRECT_INDEXED },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "STY", CPU::AddressMode::ZERO_PAGE_X },
-            { "STA", CPU::AddressMode::ZERO_PAGE_X },
-            { "STX", CPU::AddressMode::ZERO_PAGE_Y },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "TYA", CPU::AddressMode::IMPLICIT },
-            { "STA", CPU::AddressMode::ABSOLUTE_Y },
-            { "TXS", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "STA", CPU::AddressMode::ABSOLUTE_X },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "LDY", CPU::AddressMode::IMMEDIATE },
-            { "LDA", CPU::AddressMode::INDEXED_INDIRECT },
-            { "LDX", CPU::AddressMode::IMMEDIATE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "LDY", CPU::AddressMode::ZERO_PAGE },
-            { "LDA", CPU::AddressMode::ZERO_PAGE },
-            { "LDX", CPU::AddressMode::ZERO_PAGE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "TAY", CPU::AddressMode::IMPLICIT },
-            { "LDA", CPU::AddressMode::IMMEDIATE },
-            { "TAX", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "LDY", CPU::AddressMode::ABSOLUTE },
-            { "LDA", CPU::AddressMode::ABSOLUTE },
-            { "LDX", CPU::AddressMode::ABSOLUTE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "BCS", CPU::AddressMode::RELATIVE },
-            { "LDA", CPU::AddressMode::INDIRECT_INDEXED },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "LDY", CPU::AddressMode::ZERO_PAGE_X },
-            { "LDA", CPU::AddressMode::ZERO_PAGE_X },
-            { "LDX", CPU::AddressMode::ZERO_PAGE_Y },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "CLV", CPU::AddressMode::IMPLICIT },
-            { "LDA", CPU::AddressMode::ABSOLUTE_Y },
-            { "TSX", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "LDY", CPU::AddressMode::ABSOLUTE_X },
-            { "LDA", CPU::AddressMode::ABSOLUTE_X },
-            { "LDX", CPU::AddressMode::ABSOLUTE_Y },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "CPY", CPU::AddressMode::IMMEDIATE },
-            { "CMP", CPU::AddressMode::INDEXED_INDIRECT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "CPY", CPU::AddressMode::ZERO_PAGE },
-            { "CMP", CPU::AddressMode::ZERO_PAGE },
-            { "DEC", CPU::AddressMode::ZERO_PAGE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INY", CPU::AddressMode::IMPLICIT },
-            { "CMP", CPU::AddressMode::IMMEDIATE },
-            { "DEX", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "CPY", CPU::AddressMode::ABSOLUTE },
-            { "CMP", CPU::AddressMode::ABSOLUTE },
-            { "DEC", CPU::AddressMode::ABSOLUTE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "BNE", CPU::AddressMode::RELATIVE },
-            { "CMP", CPU::AddressMode::INDIRECT_INDEXED },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "CMP", CPU::AddressMode::ZERO_PAGE_X },
-            { "DEC", CPU::AddressMode::ZERO_PAGE_X },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "CLD", CPU::AddressMode::IMPLICIT },
-            { "CMP", CPU::AddressMode::ABSOLUTE_Y },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "CMP", CPU::AddressMode::ABSOLUTE_X },
-            { "DEC", CPU::AddressMode::ABSOLUTE_X },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "CPX", CPU::AddressMode::IMMEDIATE },
-            { "SBC", CPU::AddressMode::INDEXED_INDIRECT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "CPX", CPU::AddressMode::ZERO_PAGE },
-            { "SBC", CPU::AddressMode::ZERO_PAGE },
-            { "INC", CPU::AddressMode::ZERO_PAGE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INX", CPU::AddressMode::IMPLICIT },
-            { "SBC", CPU::AddressMode::IMMEDIATE },
-            { "NOP", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "CPX", CPU::AddressMode::ABSOLUTE },
-            { "SBC", CPU::AddressMode::ABSOLUTE },
-            { "INC", CPU::AddressMode::ABSOLUTE },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "BEQ", CPU::AddressMode::RELATIVE },
-            { "SBC", CPU::AddressMode::INDIRECT_INDEXED },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "SBC", CPU::AddressMode::ZERO_PAGE_X },
-            { "INC", CPU::AddressMode::ZERO_PAGE_X },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "SED", CPU::AddressMode::IMPLICIT },
-            { "SBC", CPU::AddressMode::ABSOLUTE_Y },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "INVALID", CPU::AddressMode::IMPLICIT },
-            { "SBC", CPU::AddressMode::ABSOLUTE_X },
-            { "INC", CPU::AddressMode::ABSOLUTE_X },
-            { "INVALID", CPU::AddressMode::IMPLICIT }
-        }};
-
-        const InstructionInfo instructionInfo = DECODED_OPCODES[m_cpu.m_controller->readWord(t_address)];
-        std::cout << instructionInfo.name << ' ';
-        switch (instructionInfo.mode) {
-            case CPU::AddressMode::IMPLICIT:
+        const InstructionInfo instructionInfo = INSTRUCTION_TABLE[m_cpu.m_controller->readWord(t_address)];
+        std::cout << INSTRUCTION_STRINGS[static_cast<size_t>(instructionInfo.id)] << ' ';
+        switch (instructionInfo.addressMode) {
+            case AddressMode::IMPLICIT:
                 break;
 
-            case CPU::AddressMode::ACCUMULATOR:
+            case AddressMode::ACCUMULATOR:
                 std::cout << "A";
                 break;
 
-            case CPU::AddressMode::IMMEDIATE:
+            case AddressMode::IMMEDIATE:
                 std::cout << "#$"; printAsHex(m_cpu.m_controller->readWord(t_address + 1));
                 break;
 
-            case CPU::AddressMode::ZERO_PAGE:
+            case AddressMode::ZERO_PAGE:
                 std::cout << "$"; printAsHex(m_cpu.m_controller->readWord(t_address + 1));
                 break;
 
-            case CPU::AddressMode::ZERO_PAGE_X:
+            case AddressMode::ZERO_PAGE_X:
                 std::cout << "$"; printAsHex(m_cpu.m_controller->readWord(t_address + 1)); std::cout << ",X";
                 break;
 
-            case CPU::AddressMode::ZERO_PAGE_Y:
+            case AddressMode::ZERO_PAGE_Y:
                 std::cout << "$"; printAsHex(m_cpu.m_controller->readWord(t_address + 1)); std::cout << ",Y";
                 break;
 
-            case CPU::AddressMode::RELATIVE:
+            case AddressMode::RELATIVE:
                 std::cout << "$"; printAsHex(m_cpu.m_controller->readWord(t_address + 1));
                 break;
 
-            case CPU::AddressMode::ABSOLUTE:
+            case AddressMode::ABSOLUTE:
                 std::cout << "$"; printAsHex(m_cpu.m_controller->readDWord(t_address + 1));
                 break;
 
-            case CPU::AddressMode::ABSOLUTE_X:
+            case AddressMode::ABSOLUTE_X:
                 std::cout << "$"; printAsHex(m_cpu.m_controller->readDWord(t_address + 1)); std::cout << ",X";
                 break;
 
-            case CPU::AddressMode::ABSOLUTE_Y:
+            case AddressMode::ABSOLUTE_Y:
                 std::cout << "$"; printAsHex(m_cpu.m_controller->readDWord(t_address + 1)); std::cout << ",Y";
                 break;
 
-            case CPU::AddressMode::INDIRECT:
+            case AddressMode::INDIRECT:
                 std::cout << "($"; printAsHex(m_cpu.m_controller->readDWord(t_address + 1)); std::cout << ")";
                 break;
 
-            case CPU::AddressMode::INDEXED_INDIRECT:
+            case AddressMode::INDEXED_INDIRECT:
                 std::cout << "($"; printAsHex(m_cpu.m_controller->readWord(t_address + 1)); std::cout << ",X)";
                 break;
 
-            case CPU::AddressMode::INDIRECT_INDEXED:
+            case AddressMode::INDIRECT_INDEXED:
                 std::cout << "($"; printAsHex(m_cpu.m_controller->readWord(t_address + 1)); std::cout << "),Y";
                 break;
 
@@ -676,7 +449,7 @@ namespace RNES {
                 ASSERT(false, "shouldn't be here");
         }
         std::cout << '\n';
-        return AMOUNT_TABLE[static_cast<size_t>(instructionInfo.mode)];
+        return instructionSize(instructionInfo.addressMode);
     }
 
     std::vector<std::string> splitString(const std::string& t_string, char t_delimiter) {

@@ -318,21 +318,8 @@ def check_duplicates():
         seen.add(i)
     return True
 
-assert(len(instructions) == 256)
-assert(check_duplicates())
 
-for i in range(len(instructions)):
-    hex_str = ""
-    if i < 16:
-        hex_str = "0x0" + hex(i)[2:]
-    else:
-        hex_str = hex(i)
-
-    (name,mode) = instructions[i]
-    if name == None:
-        instStr = "nullptr"
-        modeStr = "AddressMode::NONE"
-    else:
-        instStr = "&CPU::instruction" + name
-        modeStr = "AddressMode::" + mode
-    print("{", "{:<21}".format(instStr + ","), "{:<32}".format(modeStr + " },"), "/*", hex_str, "*/")
+if __name__=="__main__":
+    assert(len(instructions) == 256)
+    assert(check_duplicates())
+    print("Test passed")
