@@ -6,9 +6,8 @@
 #include <memory>
 #include <initializer_list>
 
-#include <stddef.h>
-
 #include "cpu_controller.hpp"
+#include "defines.hpp"
 
 namespace RNES::CPU {
 

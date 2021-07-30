@@ -1,4 +1,4 @@
-#include <stddef.h>
+#include "defines.hpp"
 
 #include "SDL.h"
 
