@@ -28,7 +28,7 @@ namespace RNES {
     RGBAPixel SurfaceWrapper::getPixel(size_t t_x, size_t t_y) const {
         const uint32_t* pixelData = static_cast<uint32_t*>(m_surface->pixels);
 
-        const uint32_t pixel = pixelData[m_surface->pitch * t_y + t_x];
+        const uint32_t pixel = pixelData[width() * t_y + t_x];
         return RGBAPixel {
             static_cast<uint8_t>((pixel >>  0) & 0xFF),
             static_cast<uint8_t>((pixel >>  8) & 0xFF),
@@ -41,7 +41,7 @@ namespace RNES {
         uint32_t* pixelData = static_cast<uint32_t*>(m_surface->pixels);
 
         const uint32_t pixel = (t_r << 0) | (t_g << 8) | (t_b << 16) | (t_a << 24);
-        pixelData[m_surface->pitch * t_y + t_x] = pixel;
+        pixelData[width() * t_y + t_x] = pixel;
     }
 
     size_t SurfaceWrapper::width() const {
