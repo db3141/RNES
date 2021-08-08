@@ -91,7 +91,6 @@ namespace RNES::PPU {
         , m_currentCycle(0)
 
         , m_outputSurface(OUTPUT_WIDTH, OUTPUT_HEIGHT)
-        , m_spriteSurface(OUTPUT_WIDTH, OUTPUT_HEIGHT)
     {
         ;
     }
@@ -110,11 +109,8 @@ namespace RNES::PPU {
         const size_t scanline = m_currentCycle / 342;
         const size_t scanlineCycle = m_currentCycle % 342;
 
+        // Read sprites from OAM
         if (scanline == 0 && scanlineCycle == 0) {
-            // Clear the surface
-            SDL_Surface* spriteSurface = m_spriteSurface.getUnderlyingSurface();
-            SDL_FillRect(spriteSurface, NULL, SDL_MapRGBA(spriteSurface->format, 0, 0, 0, 0));
-
             for (size_t i = 0; i < SPRITE_COUNT; i++) {
                 const Sprite s = {
                     .x          = m_oam[4*i + 3],
@@ -134,63 +130,22 @@ namespace RNES::PPU {
                 uint16_t& v = m_registers.v;
                 uint16_t& t = m_registers.t;
 
+                const size_t screenX = scanlineCycle - 1;
+                const size_t screenY = scanline;
+
                 const size_t coarseXScroll = (v >> 0) & 0x001F;
-                const size_t fineXScroll = m_registers.x;
                 const size_t coarseYScroll = (v >> 5) & 0x001F;
+                const size_t fineXScroll = m_registers.x;
                 const size_t fineYScroll = (v >> 12) & 0x0007;
 
-                const size_t nametableIndex = coarseYScroll * 32 + coarseXScroll;
-                const uint16_t nametableAddress = 0x2000; // TODO: change this
-                const uint8_t patternTableIndex = m_controller->readWord(nametableAddress + nametableIndex);
+                const uint8_t tileIndex = getTileIndex(coarseXScroll, coarseYScroll);
 
-                const size_t tileXCoord = (fineXScroll + (scanlineCycle - 1)) % 8;
-                const size_t tileYCoord = fineYScroll;
-
-                const size_t paletteColourIndexLowBit = (m_controller->readWord(0x1000 + 16 * patternTableIndex + tileYCoord) >> (7 - tileXCoord)) & 1; // TODO: change the base address
-                const size_t paletteColourIndexHighBit = (m_controller->readWord(0x1000 + 16 * patternTableIndex + tileYCoord + 8) >> (7 - tileXCoord)) & 1;
-                const size_t paletteColourIndex = (paletteColourIndexHighBit << 1) | (paletteColourIndexLowBit << 0);
-
-                const size_t attributeTableAddress = 0x23C0;
-                const size_t attributeTableX = (scanlineCycle - 1) / 32;
-                const size_t attributeTableY = scanline / 32;
-
-                const size_t attributeTableHorizontal = ((scanlineCycle - 1) % 32) / 16; // get horizontal quadrant
-                const size_t attributeTableVertical = (scanline % 32) / 16; // get vertical quadrant
-
-                const size_t attributeTableQuadrant = 2 * attributeTableVertical + attributeTableHorizontal;
-                ASSERT(attributeTableQuadrant < 4, "Out of range");
-
-                const size_t paletteIndex = (m_controller->readWord(attributeTableAddress + 8 * attributeTableY + attributeTableX) >> (2 * attributeTableQuadrant)) & 0x03;
-                ASSERT(paletteIndex < PALETTE_MAP.size(), "Out of range");
+                const uint8_t bgPaletteIndex = getPaletteIndex(tileIndex, (screenX + fineXScroll) % 8, fineYScroll);
+                const size_t bgPalette = getPalette(screenX, screenY);
 
                 if (scanline <= 240) {
-                    switch (paletteColourIndex) {
-                        case 0: {
-                                const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F00)];
-                                m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
-                            }
-                            break;
-                        case 1: {
-                                const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F01 + 4 * paletteIndex)];
-                                m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
-                            }
-                            break;
-                        case 2: {
-                                const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F02 + 4 * paletteIndex)];
-                                m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
-                            }
-                            break;
-                        case 3: {
-                                const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F03 + 4 * paletteIndex)];
-                                m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
-                            }
-                            break;
-                        default:
-                            ASSERT(false, "Shouldnt be here");
-                    }
-
-                    size_t topVisibleSpriteIndex = SPRITE_COUNT;
-                    size_t topVisibleSpritePaletteColourIndex = 0;
+                    size_t topSpriteIndex = SPRITE_COUNT;
+                    size_t topSpritePaletteIndex = 0;
                     for (size_t i = 0; i < SPRITE_COUNT; i++) {
                         if (m_sprites[i].contains(scanlineCycle - 1, scanline)) {
                             const size_t localX = (scanlineCycle - 1) - m_sprites[i].x;
@@ -203,47 +158,43 @@ namespace RNES::PPU {
                             ASSERT(realLocalX < 8, "");
                             ASSERT(realLocalY < 8, "");
 
-                            const size_t paletteColourIndexLowBit = (m_controller->readWord(0x0000 + 16 * m_sprites[i].tileIndex + realLocalY) >> (7 - realLocalX)) & 1;
-                            const size_t paletteColourIndexHighBit = (m_controller->readWord(0x0000 + 16 * m_sprites[i].tileIndex + realLocalY + 8) >> (7 - realLocalX)) & 1;
+                            const size_t paletteIndexLowBit = (m_controller->readWord(0x0000 + 16 * m_sprites[i].tileIndex + realLocalY) >> (7 - realLocalX)) & 1;
+                            const size_t paletteIndexHighBit = (m_controller->readWord(0x0000 + 16 * m_sprites[i].tileIndex + realLocalY + 8) >> (7 - realLocalX)) & 1;
 
-                            const size_t paletteColourIndex = (paletteColourIndexHighBit << 1) | (paletteColourIndexLowBit << 0);
-                            ASSERT(paletteColourIndex < 4, "");
+                            const size_t paletteIndex = (paletteIndexHighBit << 1) | (paletteIndexLowBit << 0);
+                            ASSERT(paletteIndex < 4, "");
 
-                            if (paletteColourIndex != 0) {
-                                topVisibleSpriteIndex = i;
-                                topVisibleSpritePaletteColourIndex = paletteColourIndex;
+                            if (paletteIndex != 0) {
+                                topSpriteIndex = i;
+                                topSpritePaletteIndex = paletteIndex;
                                 break;
                             }
                         }
                     }
-                    if (topVisibleSpriteIndex < SPRITE_COUNT) {
-                        const size_t paletteIndex = 4 + (m_sprites[topVisibleSpriteIndex].attributes & 0x03);
-                        switch (topVisibleSpritePaletteColourIndex) {
-                            case 0: {
-                                    const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F00)];
-                                    m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
-                                }
-                                break;
-                            case 1: {
-                                    const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F01 + 4 * paletteIndex)];
-                                    m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
-                                }
-                                break;
-                            case 2: {
-                                    const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F02 + 4 * paletteIndex)];
-                                    m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
-                                }
-                                break;
-                            case 3: {
-                                    const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F03 + 4 * paletteIndex)];
-                                    m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
-                                }
-                                break;
-                            default:
-                                ASSERT(false, "Shouldnt be here");
+
+                    const size_t spritePalette = (topSpriteIndex < SPRITE_COUNT) ? (4 + (m_sprites[topSpriteIndex].attributes & 0x03)) : 0;
+                    RGBAPixel c = { 0, 0, 0, 0 };
+                    if (bgPaletteIndex == 0 && topSpritePaletteIndex == 0) {
+                        c = getColour(0, 0);
+                    }
+                    else if (bgPaletteIndex == 0 && topSpritePaletteIndex != 0) {
+                        c = getColour(spritePalette, topSpritePaletteIndex);
+                    }
+                    else if (bgPaletteIndex != 0 && topSpritePaletteIndex == 0) {
+                        c = getColour(bgPalette, bgPaletteIndex);
+                    }
+                    else {
+                        // TODO: add sprite 0 hit here
+
+                        // Check sprite priority (0 = infront, 1 = behind)
+                        if (m_sprites[topSpriteIndex].attributes & 0x20) {
+                            c = getColour(bgPalette, bgPaletteIndex);
+                        }
+                        else {
+                            c = getColour(spritePalette, topSpritePaletteIndex);
                         }
                     }
-
+                    m_outputSurface.setPixel(screenX, screenY, c.r, c.g, c.b, c.a);
                 }
 
 
@@ -313,6 +264,45 @@ namespace RNES::PPU {
         }
 
         m_currentCycle++;
+    }
+
+    uint8_t PPU::getTileIndex(size_t t_coarseXScroll, size_t t_coarseYScroll) {
+        const size_t nametableIndex = t_coarseYScroll * 32 + t_coarseXScroll;
+        const size_t nametableAddress = 0x2000; // TODO: change this
+
+        return m_controller->readWord(nametableAddress + nametableIndex);
+    }
+
+    uint8_t PPU::getPaletteIndex(size_t t_tileIndex, size_t t_tileX, size_t t_tileY) {
+        const size_t paletteIndexLowBit = (m_controller->readWord(0x1000 + 16 * t_tileIndex + t_tileY) >> (7 - t_tileX)) & 1; // TODO: change the base address
+        const size_t paletteIndexHighBit = (m_controller->readWord(0x1000 + 16 * t_tileIndex + t_tileY + 8) >> (7 - t_tileX)) & 1;
+        return (paletteIndexHighBit << 1) | (paletteIndexLowBit << 0);
+    }
+
+    size_t PPU::getPalette(size_t t_x, size_t t_y) {
+        const size_t attributeTableAddress = 0x23C0; // TODO: change this
+        const size_t attributeTableX = t_x / 32;
+        const size_t attributeTableY = t_y / 32;
+
+        const size_t attributeTableHorizontal = (t_x % 32) / 16; // get horizontal quadrant
+        const size_t attributeTableVertical = (t_y % 32) / 16; // get vertical quadrant
+
+        const size_t attributeTableQuadrant = 2 * attributeTableVertical + attributeTableHorizontal;
+        ASSERT(attributeTableQuadrant < 4, "Out of range");
+
+        const size_t palette = (m_controller->readWord(attributeTableAddress + 8 * attributeTableY + attributeTableX) >> (2 * attributeTableQuadrant)) & 0x03;
+        ASSERT(palette < PALETTE_MAP.size(), "Out of range");
+
+        return palette;
+    }
+
+    RGBAPixel PPU::getColour(size_t t_palette, size_t t_paletteIndex) {
+        if (t_paletteIndex != 0) {
+            return PALETTE_MAP[m_controller->readWord(0x3F00 + 4 * t_palette + t_paletteIndex)];
+        }
+        else {
+            return PALETTE_MAP[m_controller->readWord(0x3F00)];
+        }
     }
 
     uint8_t PPU::readPPUStatus() {

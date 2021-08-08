@@ -48,6 +48,7 @@ int main(int argc, char* argv[]) {
     }
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, ppu.getScreenOutput());
     SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
     SDL_DestroyTexture(texture);
 
     SDL_Event e;
@@ -59,7 +60,6 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        SDL_RenderPresent(renderer);
         SDL_Delay(16);
     }
 

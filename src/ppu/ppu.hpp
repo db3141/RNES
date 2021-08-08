@@ -90,7 +90,11 @@ namespace RNES::PPU {
         std::array<Sprite, SPRITE_COUNT> m_sprites;
 
         SurfaceWrapper m_outputSurface;
-        SurfaceWrapper m_spriteSurface;
+
+        uint8_t getTileIndex(size_t t_coarseXScroll, size_t t_coarseYScroll);
+        uint8_t getPaletteIndex(size_t t_tileIndex, size_t t_tileX, size_t t_tileY);
+        size_t getPalette(size_t t_x, size_t t_y);
+        RGBAPixel getColour(size_t t_palette, size_t t_paletteIndex);
     };
 
 }
