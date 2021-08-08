@@ -11,6 +11,7 @@
 namespace RNES::PPU {
 
     static const size_t OAM_SIZE = 256;
+    static const size_t SPRITE_COUNT = OAM_SIZE / 4;
 
     static const size_t OUTPUT_WIDTH = 256;
     static const size_t OUTPUT_HEIGHT = 240;
@@ -18,6 +19,7 @@ namespace RNES::PPU {
     class PPU {
     public:
         PPU();
+        PPU(const char* t_oamFile);
 
         void cycle();
 
@@ -76,7 +78,19 @@ namespace RNES::PPU {
         size_t m_lastUpdatedCycle;
         size_t m_currentCycle;
 
+        struct Sprite {
+            uint8_t x, y;
+            uint8_t tileIndex;
+            uint8_t attributes;
+
+            bool contains(size_t t_x, size_t t_y) {
+                return ((x <= t_x) && (t_x < x + 8)) && ((y <= t_y) && (t_y < y + 8));
+            }
+        };
+        std::array<Sprite, SPRITE_COUNT> m_sprites;
+
         SurfaceWrapper m_outputSurface;
+        SurfaceWrapper m_spriteSurface;
     };
 
 }

@@ -20,3 +20,9 @@ add_custom_command(TARGET ppu_test POST_BUILD
     ${CMAKE_CURRENT_SOURCE_DIR}/ppu_dump.bin
     ${PPU_TEST_OUTPUT_DIR}/ppu_dump.bin
 )
+
+add_custom_command(TARGET ppu_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_CURRENT_SOURCE_DIR}/oam_dump.bin
+    ${PPU_TEST_OUTPUT_DIR}/oam_dump.bin
+)

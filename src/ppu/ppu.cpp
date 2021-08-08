@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <fstream>
 
 #include "assert.hpp"
 #include "ppu.hpp"
@@ -90,8 +91,15 @@ namespace RNES::PPU {
         , m_currentCycle(0)
 
         , m_outputSurface(OUTPUT_WIDTH, OUTPUT_HEIGHT)
+        , m_spriteSurface(OUTPUT_WIDTH, OUTPUT_HEIGHT)
     {
         ;
+    }
+
+    PPU::PPU(const char* t_oamFile) : PPU() {
+        std::ifstream fileStream(t_oamFile, std::ios::in | std::ios::binary);
+        ASSERT(fileStream.is_open(), "Failed to open");
+        fileStream.read(reinterpret_cast<char*>(m_oam.data()), OAM_SIZE);
     }
 
     void PPU::setController(std::unique_ptr<PPUController> t_controller) {
@@ -101,6 +109,22 @@ namespace RNES::PPU {
     void PPU::cycle() {
         const size_t scanline = m_currentCycle / 342;
         const size_t scanlineCycle = m_currentCycle % 342;
+
+        if (scanline == 0 && scanlineCycle == 0) {
+            // Clear the surface
+            SDL_Surface* spriteSurface = m_spriteSurface.getUnderlyingSurface();
+            SDL_FillRect(spriteSurface, NULL, SDL_MapRGBA(spriteSurface->format, 0, 0, 0, 0));
+
+            for (size_t i = 0; i < SPRITE_COUNT; i++) {
+                const Sprite s = {
+                    .x          = m_oam[4*i + 3],
+                    .y          = m_oam[4*i + 0],
+                    .tileIndex  = m_oam[4*i + 1],
+                    .attributes = m_oam[4*i + 2],
+                };
+                m_sprites[i] = s;
+            }
+        }
 
         if (scanline <= 239 || scanline == 261) {
             if (scanlineCycle == 0) {
@@ -164,6 +188,62 @@ namespace RNES::PPU {
                         default:
                             ASSERT(false, "Shouldnt be here");
                     }
+
+                    size_t topVisibleSpriteIndex = SPRITE_COUNT;
+                    size_t topVisibleSpritePaletteColourIndex = 0;
+                    for (size_t i = 0; i < SPRITE_COUNT; i++) {
+                        if (m_sprites[i].contains(scanlineCycle - 1, scanline)) {
+                            const size_t localX = (scanlineCycle - 1) - m_sprites[i].x;
+                            const size_t localY = scanline - m_sprites[i].y;
+                            ASSERT(localX < 8, "");
+                            ASSERT(localY < 8, "");
+
+                            const size_t realLocalX = (m_sprites[i].attributes & 0x40) ? (7 - localX) : (localX);
+                            const size_t realLocalY = (m_sprites[i].attributes & 0x80) ? (7 - localY) : (localY);
+                            ASSERT(realLocalX < 8, "");
+                            ASSERT(realLocalY < 8, "");
+
+                            const size_t paletteColourIndexLowBit = (m_controller->readWord(0x0000 + 16 * m_sprites[i].tileIndex + realLocalY) >> (7 - realLocalX)) & 1;
+                            const size_t paletteColourIndexHighBit = (m_controller->readWord(0x0000 + 16 * m_sprites[i].tileIndex + realLocalY + 8) >> (7 - realLocalX)) & 1;
+
+                            const size_t paletteColourIndex = (paletteColourIndexHighBit << 1) | (paletteColourIndexLowBit << 0);
+                            ASSERT(paletteColourIndex < 4, "");
+
+                            if (paletteColourIndex != 0) {
+                                topVisibleSpriteIndex = i;
+                                topVisibleSpritePaletteColourIndex = paletteColourIndex;
+                                break;
+                            }
+                        }
+                    }
+                    if (topVisibleSpriteIndex < SPRITE_COUNT) {
+                        const size_t paletteIndex = 4 + (m_sprites[topVisibleSpriteIndex].attributes & 0x03);
+                        switch (topVisibleSpritePaletteColourIndex) {
+                            case 0: {
+                                    const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F00)];
+                                    m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
+                                }
+                                break;
+                            case 1: {
+                                    const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F01 + 4 * paletteIndex)];
+                                    m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
+                                }
+                                break;
+                            case 2: {
+                                    const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F02 + 4 * paletteIndex)];
+                                    m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
+                                }
+                                break;
+                            case 3: {
+                                    const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F03 + 4 * paletteIndex)];
+                                    m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
+                                }
+                                break;
+                            default:
+                                ASSERT(false, "Shouldnt be here");
+                        }
+                    }
+
                 }
 
 
