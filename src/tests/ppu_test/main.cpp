@@ -4,8 +4,8 @@
 #include "ppu_test_controller.hpp"
 
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        std::cerr << "Usage: <file>\n";
+    if (argc != 3) {
+        std::cerr << "Usage: <ppu_dump> <oam_dump>\n";
         return 1;
     }
 
@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     }
 
     auto ppuController = std::make_unique<RNES::PPUTestController>(argv[1]);
-    RNES::PPU::PPU ppu;
+    RNES::PPU::PPU ppu(argv[2]);
     ppu.setController(std::move(ppuController));
 
     for (size_t i = 0; i < 341 * 241; i++) {

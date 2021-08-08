@@ -11,6 +11,7 @@
 namespace RNES::PPU {
 
     static const size_t OAM_SIZE = 256;
+    static const size_t OAM_SECONDARY_SIZE = 32;
 
     static const size_t OUTPUT_WIDTH = 256;
     static const size_t OUTPUT_HEIGHT = 240;
@@ -18,6 +19,7 @@ namespace RNES::PPU {
     class PPU {
     public:
         PPU();
+        PPU(const char* t_oamFile);
 
         void cycle();
 
@@ -40,6 +42,7 @@ namespace RNES::PPU {
         [[nodiscard]] SDL_Surface* getScreenOutput();
     private:
         std::array<Word, OAM_SIZE> m_oam;
+        std::array<Word, OAM_SECONDARY_SIZE> m_secondaryOAM;
         std::unique_ptr<PPUController> m_controller;
 
         struct {
@@ -73,10 +76,47 @@ namespace RNES::PPU {
             bool w; // First or second write toggle
         } m_registers;
 
+
+        enum class SpriteEvaluationCase {
+            CASE_1,
+            CASE_1A_1,
+            CASE_1A_2,
+            CASE_1A_3,
+
+            CASE_2,
+
+            CASE_3,
+            CASE_3A_1,
+            CASE_3A_2,
+            CASE_3A_3,
+
+            CASE_4,
+        };
+
+        struct {
+            SpriteEvaluationCase eCase;
+            bool writeFlag; // register for when secondary OAM can be written to
+            uint8_t temp; // temporary register for copying to secondary OAM
+            uint8_t n, m; // index registers
+            uint8_t secondaryOAMCount; // number of elements written to OAM
+        } m_spriteEvaluationState;
+
+        struct SpriteData {
+            uint8_t x, y;
+            uint8_t tileIndex;
+            uint8_t attributes;
+        };
+        std::array<SpriteData, 8> m_scanlineSprites; // sprite data of sprites to be drawn on the next scanline
+
         size_t m_lastUpdatedCycle;
         size_t m_currentCycle;
 
         SurfaceWrapper m_outputSurface;
+
+        //----- Methods -----//
+        void spriteEvaluationMain(size_t t_scanline, size_t t_scanlineCycle);
+        void writeSecondaryOAM(size_t t_address, uint8_t t_value);
+        uint8_t readOAMWord(size_t t_n, size_t t_m);
     };
 
 }

@@ -1,5 +1,7 @@
+#include <algorithm>
 #include <iostream>
 #include <iomanip>
+#include <fstream>
 
 #include "assert.hpp"
 #include "ppu.hpp"
@@ -81,17 +83,26 @@ namespace RNES::PPU {
 
     PPU::PPU()
         : m_oam()
+        , m_secondaryOAM()
         , m_controller(nullptr)
 
         , m_flags({ true, true })
         , m_registers({ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
+        , m_spriteEvaluationState({ SpriteEvaluationCase::CASE_1, true, 0, 0, 0, 0 })
+        , m_scanlineSprites()
 
         , m_lastUpdatedCycle(0)
         , m_currentCycle(0)
 
         , m_outputSurface(OUTPUT_WIDTH, OUTPUT_HEIGHT)
     {
-        ;
+        std::fill(m_scanlineSprites.begin(), m_scanlineSprites.end(), SpriteData{ 0xFF, 0xFF, 0xFF, 0xFF });
+    }
+
+    PPU::PPU(const char* t_oamFile) : PPU() {
+        std::ifstream fileStream(t_oamFile, std::ios::in | std::ios::binary);
+        ASSERT(fileStream.is_open(), "Failed to open");
+        fileStream.read(reinterpret_cast<char*>(m_oam.data()), OAM_SIZE);
     }
 
     void PPU::setController(std::unique_ptr<PPUController> t_controller) {
@@ -107,6 +118,26 @@ namespace RNES::PPU {
                 ;
             }
             else if (scanlineCycle <= 256) {
+                //----- Sprite evaluation -----//
+                if (scanlineCycle == 1) {
+                    std::fill(m_secondaryOAM.begin(), m_secondaryOAM.end(), 0xFF);
+
+                    // Reset sprite evaluation variables
+                    m_spriteEvaluationState = { SpriteEvaluationCase::CASE_1, true, 0, 0, 0, 0 };
+
+                    /*
+                    std::cout << scanline << '\n';
+                    for (size_t i = 0; i < 8; i++) {
+                        std::cout << i << ": " << int(m_scanlineSprites[i].x) << ", " << int(m_scanlineSprites[i].y) << ", " << int(m_scanlineSprites[i].tileIndex) << ", " << int(m_scanlineSprites[i].attributes) << '\n';
+                    }
+                    std::cout << '\n';
+                    //*/
+                }
+                else if (scanlineCycle >= 65) {
+                    spriteEvaluationMain(scanline, scanlineCycle);
+                }
+
+                //----- Background -----//
                 uint16_t& v = m_registers.v;
                 uint16_t& t = m_registers.t;
 
@@ -140,30 +171,21 @@ namespace RNES::PPU {
                 ASSERT(paletteIndex < PALETTE_MAP.size(), "Out of range");
 
                 if (scanline <= 240) {
-                    switch (paletteColourIndex) {
-                        case 0: {
-                                const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F00)];
-                                m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
-                            }
-                            break;
-                        case 1: {
-                                const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F01 + 4 * paletteIndex)];
-                                m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
-                            }
-                            break;
-                        case 2: {
-                                const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F02 + 4 * paletteIndex)];
-                                m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
-                            }
-                            break;
-                        case 3: {
-                                const RGBAPixel c = PALETTE_MAP[m_controller->readWord(0x3F03 + 4 * paletteIndex)];
-                                m_outputSurface.setPixel(scanlineCycle - 1, scanline, c.r, c.g, c.b, c.a);
-                            }
-                            break;
-                        default:
-                            ASSERT(false, "Shouldnt be here");
+                    RGBAPixel backgroundColour = { 0, 0, 0, 0 };
+                    if (paletteColourIndex == 0) {
+                        backgroundColour = PALETTE_MAP[m_controller->readWord(0x3F00)];
                     }
+                    else {
+                        backgroundColour = PALETTE_MAP[m_controller->readWord(0x3F00 + paletteColourIndex + 4 * paletteIndex)];
+                    }
+
+                    RGBAPixel foregroundColour = { 0, 0, 0, 0 };
+                    // Loop backwards so sprite 0 is on top
+                    for (int i = 7; i >= 1; i--) {
+                        
+                    }
+
+                    m_outputSurface.setPixel(scanlineCycle - 1, scanline, backgroundColour.r, backgroundColour.g, backgroundColour.b, 0xFF);
                 }
 
 
@@ -213,7 +235,27 @@ namespace RNES::PPU {
 
             }
             else if (scanlineCycle <= 320) {
-                // TODO
+                //----- Background -----//
+
+                //----- Sprite Evaluation -----//
+                const size_t sprite = (scanlineCycle - 257) / 8;
+                const size_t spriteCycle = (scanlineCycle - 257) % 8;
+                switch (spriteCycle) {
+                    case 0:
+                        m_scanlineSprites[sprite].y = m_secondaryOAM[4 * sprite + 0];
+                        break;
+                    case 1:
+                        m_scanlineSprites[sprite].tileIndex = m_secondaryOAM[4 * sprite + 1];
+                        break;
+                    case 2:
+                        m_scanlineSprites[sprite].attributes = m_secondaryOAM[4 * sprite + 2];
+                        break;
+                    case 3:
+                        m_scanlineSprites[sprite].x = m_secondaryOAM[4 * sprite + 3];
+                        break;
+                    default:
+                        break;
+                }
             }
             else if (scanlineCycle <= 336) {
                 // TODO
@@ -231,8 +273,167 @@ namespace RNES::PPU {
                 m_controller->sendVBlankNMI();
             }
         }
+        //*
+        for (size_t i = 0; i < 8; i++) {
+            std::cout << std::hex << std::setw(2) << '(' << int(m_secondaryOAM[4*i + 0]) << ", " << int(m_secondaryOAM[4*i + 1]) << ", " << int(m_secondaryOAM[4*i + 2]) << ", " << int(m_secondaryOAM[4*i + 3]) << ") ";
+        }
+        std::cout << '\n';
+        //*/
 
         m_currentCycle++;
+    }
+
+    void PPU::spriteEvaluationMain(size_t t_scanline, size_t t_scanlineCycle) {
+
+        switch (m_spriteEvaluationState.eCase) {
+            case SpriteEvaluationCase::CASE_1:
+                if (t_scanlineCycle % 2 == 1) {
+                    m_spriteEvaluationState.temp = readOAMWord(m_spriteEvaluationState.n, 0);
+                }
+                else if (m_spriteEvaluationState.secondaryOAMCount < 8) {
+                    writeSecondaryOAM(4 * m_spriteEvaluationState.secondaryOAMCount, m_spriteEvaluationState.temp);
+
+                    const uint8_t y = m_spriteEvaluationState.temp;
+                    if (y <= t_scanline && t_scanline <= y + 8) {
+                        m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_1A_1;
+                    }
+                    else {
+                        m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_2;
+                    }
+                }
+                else {
+                    m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_2;
+                }
+                break;
+
+            case SpriteEvaluationCase::CASE_1A_1:
+                if (t_scanlineCycle % 2 == 1) {
+                    m_spriteEvaluationState.temp = readOAMWord(m_spriteEvaluationState.n, 1);
+                }
+                else {
+                    writeSecondaryOAM(4 * m_spriteEvaluationState.secondaryOAMCount + 1, m_spriteEvaluationState.temp);
+                    m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_1A_2;
+                }
+                break;
+
+            case SpriteEvaluationCase::CASE_1A_2:
+                if (t_scanlineCycle % 2 == 1) {
+                    m_spriteEvaluationState.temp = readOAMWord(m_spriteEvaluationState.n, 2);
+                }
+                else {
+                    writeSecondaryOAM(4 * m_spriteEvaluationState.secondaryOAMCount + 2, m_spriteEvaluationState.temp);
+                    m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_1A_3;
+                }
+                break;
+
+            case SpriteEvaluationCase::CASE_1A_3:
+                if (t_scanlineCycle % 2 == 1) {
+                    m_spriteEvaluationState.temp = readOAMWord(m_spriteEvaluationState.n, 3);
+                }
+                else {
+                    writeSecondaryOAM(4 * m_spriteEvaluationState.secondaryOAMCount + 3, m_spriteEvaluationState.temp);
+                    m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_2;
+                    m_spriteEvaluationState.secondaryOAMCount++;
+                }
+                break;
+
+            case SpriteEvaluationCase::CASE_2:
+                m_spriteEvaluationState.n = (m_spriteEvaluationState.n + 1) % 64;
+                if (m_spriteEvaluationState.n == 0) {
+                    m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_4;
+                }
+                else if (m_spriteEvaluationState.secondaryOAMCount < 8) {
+                    m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_1;
+                }
+                else if (m_spriteEvaluationState.secondaryOAMCount == 8) {
+                    m_spriteEvaluationState.writeFlag = false;
+                    m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_3;
+                }
+                else {
+                    m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_3;
+                }
+                break;
+
+            case SpriteEvaluationCase::CASE_3:
+                if (t_scanlineCycle % 2 == 1) {
+                    const uint8_t y = readOAMWord(m_spriteEvaluationState.n, m_spriteEvaluationState.m);
+
+                    if (y <= t_scanline && t_scanline <= y + 8) {
+                        m_registers.ppuStatus |= 0x20; // set sprite overflow flag
+                        m_spriteEvaluationState.m = (m_spriteEvaluationState.m + 1) % 4;
+                        if (m_spriteEvaluationState.m == 0) {
+                            m_spriteEvaluationState.n = (m_spriteEvaluationState.n + 1) % 64;
+                        }
+                        m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_3A_1;
+                    }
+                    else {
+                        m_spriteEvaluationState.n = (m_spriteEvaluationState.n + 1) % 64;
+                        m_spriteEvaluationState.m = (m_spriteEvaluationState.m + 1) % 4;
+
+                        if (m_spriteEvaluationState.n == 0) {
+                            m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_4;
+                        }
+                        else {
+                            m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_3;
+                        }
+                    }
+                }
+                break;
+
+            case SpriteEvaluationCase::CASE_3A_1:
+                if (t_scanlineCycle % 2 == 1) {
+                    readOAMWord(m_spriteEvaluationState.n, m_spriteEvaluationState.m); // unused read
+
+                    m_spriteEvaluationState.m = (m_spriteEvaluationState.m + 1) % 4;
+                    if (m_spriteEvaluationState.m == 0) {
+                        m_spriteEvaluationState.n++;
+                    }
+                    m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_3A_2;
+                }
+                break;
+
+            case SpriteEvaluationCase::CASE_3A_2:
+                if (t_scanlineCycle % 2 == 1) {
+                    readOAMWord(m_spriteEvaluationState.n, m_spriteEvaluationState.m); // unused read
+
+                    m_spriteEvaluationState.m = (m_spriteEvaluationState.m + 1) % 4;
+                    if (m_spriteEvaluationState.m == 0) {
+                        m_spriteEvaluationState.n++;
+                    }
+                    m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_3A_3;
+                }
+                break;
+
+            case SpriteEvaluationCase::CASE_3A_3:
+                if (t_scanlineCycle % 2 == 1) {
+                    readOAMWord(m_spriteEvaluationState.n, m_spriteEvaluationState.m); // unused read
+
+                    m_spriteEvaluationState.m = (m_spriteEvaluationState.m + 1) % 4;
+                    if (m_spriteEvaluationState.m == 0) {
+                        m_spriteEvaluationState.n++;
+                    }
+                    m_spriteEvaluationState.eCase = SpriteEvaluationCase::CASE_4;
+                }
+                break;
+
+            case SpriteEvaluationCase::CASE_4:
+                if (t_scanlineCycle % 2 == 1) {
+                    readOAMWord(m_spriteEvaluationState.n, 0); // unused read
+                    m_spriteEvaluationState.n++;
+                }
+                break;
+        }
+    }
+
+    uint8_t PPU::readOAMWord(size_t t_n, size_t t_m) {
+        //std::cout << "OAM[" << 4 * t_n + t_m << "] = " << std::hex << std::setw(2) << std::setfill('0') << int(m_oam[4 * t_n + t_m]) << '\n';
+        return m_oam[4 * t_n + t_m];
+    }
+
+    void PPU::writeSecondaryOAM(size_t t_address, uint8_t t_value) {
+        if (m_spriteEvaluationState.writeFlag) {
+            m_secondaryOAM[t_address] = t_value;
+        }
     }
 
     uint8_t PPU::readPPUStatus() {
@@ -243,7 +444,15 @@ namespace RNES::PPU {
     }
 
     uint8_t PPU::readOAMData() {
-        return m_oam[m_registers.oamAddr];
+        const size_t scanlineCycle = m_currentCycle % 342;
+
+        // When clearing secondary OAM return 0xFF
+        if (1 <= scanlineCycle && scanlineCycle <= 64) {
+            return 0xFF;
+        }
+        else {
+            return m_oam[m_registers.oamAddr];
+        }
     }
 
     uint8_t PPU::readPPUData() {
