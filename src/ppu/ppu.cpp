@@ -84,8 +84,8 @@ namespace RNES::PPU {
         : m_oam()
         , m_controller(nullptr)
 
-        , m_flags({ true, true })
-        , m_registers({ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
+        , m_flags({ true })
+        , m_registers({ 0x10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
 
         , m_lastUpdatedCycle(0)
         , m_currentCycle(0)
@@ -111,146 +111,72 @@ namespace RNES::PPU {
 
         // Read sprites from OAM
         if (scanline == 0 && scanlineCycle == 0) {
-            for (size_t i = 0; i < SPRITE_COUNT; i++) {
-                const Sprite s = {
-                    .x          = m_oam[4*i + 3],
-                    .y          = m_oam[4*i + 0],
-                    .tileIndex  = m_oam[4*i + 1],
-                    .attributes = m_oam[4*i + 2],
-                };
-                m_sprites[i] = s;
-            }
+            loadSprites();
         }
 
         if (scanline <= 239 || scanline == 261) {
-            if (scanlineCycle == 0) {
-                ;
-            }
-            else if (scanlineCycle <= 256) {
-                uint16_t& v = m_registers.v;
-                uint16_t& t = m_registers.t;
+            if (1 <= scanlineCycle && scanlineCycle <= 256) {
+                if (scanlineCycle == 1 && scanline == 261) {
+                    m_registers.ppuStatus &= 0x3F; // reset sprite 0 and vblank flags
+                }
 
                 const size_t screenX = scanlineCycle - 1;
                 const size_t screenY = scanline;
 
-                const size_t coarseXScroll = (v >> 0) & 0x001F;
-                const size_t coarseYScroll = (v >> 5) & 0x001F;
+                const size_t coarseXScroll = (m_registers.v >> 0) & 0x001F;
+                const size_t coarseYScroll = (m_registers.v >> 5) & 0x001F;
                 const size_t fineXScroll = m_registers.x;
-                const size_t fineYScroll = (v >> 12) & 0x0007;
+                const size_t fineYScroll = (m_registers.v >> 12) & 0x0007;
 
                 const uint8_t tileIndex = getTileIndex(coarseXScroll, coarseYScroll);
 
-                const uint8_t bgPaletteIndex = getPaletteIndex(tileIndex, (screenX + fineXScroll) % 8, fineYScroll);
+                const size_t bgNametableAddress = (m_registers.ppuCtrl & 0x10) ? 0x1000 : 0x0000;
+                const uint8_t bgPaletteIndex = getPaletteIndex(bgNametableAddress, tileIndex, (screenX + fineXScroll) % 8, fineYScroll);
                 const size_t bgPalette = getPalette(screenX, screenY);
 
                 if (scanline <= 240) {
-                    size_t topSpriteIndex = SPRITE_COUNT;
-                    size_t topSpritePaletteIndex = 0;
-                    for (size_t i = 0; i < SPRITE_COUNT; i++) {
-                        if (m_sprites[i].contains(scanlineCycle - 1, scanline)) {
-                            const size_t localX = (scanlineCycle - 1) - m_sprites[i].x;
-                            const size_t localY = scanline - m_sprites[i].y;
-                            ASSERT(localX < 8, "");
-                            ASSERT(localY < 8, "");
+                    const SpritePixelData topPixel = findTopSpritePixelData(screenX, screenY);
 
-                            const size_t realLocalX = (m_sprites[i].attributes & 0x40) ? (7 - localX) : (localX);
-                            const size_t realLocalY = (m_sprites[i].attributes & 0x80) ? (7 - localY) : (localY);
-                            ASSERT(realLocalX < 8, "");
-                            ASSERT(realLocalY < 8, "");
-
-                            const size_t paletteIndexLowBit = (m_controller->readWord(0x0000 + 16 * m_sprites[i].tileIndex + realLocalY) >> (7 - realLocalX)) & 1;
-                            const size_t paletteIndexHighBit = (m_controller->readWord(0x0000 + 16 * m_sprites[i].tileIndex + realLocalY + 8) >> (7 - realLocalX)) & 1;
-
-                            const size_t paletteIndex = (paletteIndexHighBit << 1) | (paletteIndexLowBit << 0);
-                            ASSERT(paletteIndex < 4, "");
-
-                            if (paletteIndex != 0) {
-                                topSpriteIndex = i;
-                                topSpritePaletteIndex = paletteIndex;
-                                break;
-                            }
-                        }
-                    }
-
-                    const size_t spritePalette = (topSpriteIndex < SPRITE_COUNT) ? (4 + (m_sprites[topSpriteIndex].attributes & 0x03)) : 0;
+                    const size_t spritePalette = (topPixel.spriteIndex < SPRITE_COUNT) ? (4 + (m_sprites[topPixel.spriteIndex].attributes & 0x03)) : 0;
                     RGBAPixel c = { 0, 0, 0, 0 };
-                    if (bgPaletteIndex == 0 && topSpritePaletteIndex == 0) {
+                    if (bgPaletteIndex == 0 && topPixel.paletteIndex == 0) {
                         c = getColour(0, 0);
                     }
-                    else if (bgPaletteIndex == 0 && topSpritePaletteIndex != 0) {
-                        c = getColour(spritePalette, topSpritePaletteIndex);
+                    else if (bgPaletteIndex == 0 && topPixel.paletteIndex != 0) {
+                        c = getColour(spritePalette, topPixel.paletteIndex);
                     }
-                    else if (bgPaletteIndex != 0 && topSpritePaletteIndex == 0) {
+                    else if (bgPaletteIndex != 0 && topPixel.paletteIndex == 0) {
                         c = getColour(bgPalette, bgPaletteIndex);
                     }
                     else {
-                        // TODO: add sprite 0 hit here
+                        if (topPixel.spriteIndex == 0) {
+                            m_registers.ppuStatus |= 0x40; // sprite 0 hit
+                        }
 
                         // Check sprite priority (0 = infront, 1 = behind)
-                        if (m_sprites[topSpriteIndex].attributes & 0x20) {
+                        if (m_sprites[topPixel.spriteIndex].attributes & 0x20) {
                             c = getColour(bgPalette, bgPaletteIndex);
                         }
                         else {
-                            c = getColour(spritePalette, topSpritePaletteIndex);
+                            c = getColour(spritePalette, topPixel.paletteIndex);
                         }
                     }
                     m_outputSurface.setPixel(screenX, screenY, c.r, c.g, c.b, c.a);
                 }
 
-
-                // Increment coarse X scroll
-                if (scanlineCycle % 8 == 0 && scanlineCycle != 0) {
-                    if (coarseXScroll == 31) {
-                        v &= ~0x001F; // set coarse x to 0
-                        v ^= 0x0400; // switch horizontal nametable
-                    }
-                    else {
-                        v++; // Increment coarse x (last 5 bits <= 30 so if we add 1 we at most get 31 which doesn't overflow into the next bits)
-                    }
-                }
-
-                if (m_flags.render) {
-                    // Increment Y scroll on cycle 256
-                    if (scanlineCycle == 256) {
-                        // Taken from https://wiki.nesdev.com/w/index.php?title=PPU_scrolling
-                        if ((v & 0x7000) != 0x7000) {
-                            v += 0x1000; // increment fine Y scroll
-                        }
-                        else {
-                            v &= ~0x7000; // set fine Y to 0
-                            int y = (v & 0x03E0) >> 5; // let y = coarse Y
-
-                            if (y == 29) {
-                                y = 0; // set coarse Y to 0
-                                v ^= 0x0800; // switch vertical nametable
-                            }
-                            else if (y == 31) {
-                                y = 0; // set coarse Y to 0
-                            }
-                            else {
-                                y++; // increment coarse Y
-                            }
-                            v = (v & ~0x03E0) | (y << 5); // put coarse Y back into v
-                        }
-                    }
-                    else if (scanlineCycle == 257) {
-                        v = (v & 0xFBE0) | (t & ~0xFBE0); // copy X scroll from t to v
-                    }
-
-                    if (scanline == 261 && (280 <= scanlineCycle && scanlineCycle <= 304)) {
-                        v = (v & 0x841F) | (t & ~0x841F); // copy horizontal bits from t to v
-                    }
-                }
-
+                // FIXME: checks for scanlines 257 and above even though we only call when it is between 1 and 256
+                incrementScroll(scanline, scanlineCycle);
             }
             else if (scanlineCycle <= 320) {
-                // TODO
+                // TODO: (maybe we can leave this empty?)
             }
             else if (scanlineCycle <= 336) {
-                // TODO
+                // TODO: (maybe we can leave this empty?)
             }
             else if (scanlineCycle <= 340) {
-                // TODO
+                if (scanlineCycle % 2 == 1) {
+                    m_controller->readWord(0x2003); // unused read (important for mapper MMC5) TODO: change the address based on current nametable
+                }
             }
         }
         else if (scanline == 240) {
@@ -258,12 +184,24 @@ namespace RNES::PPU {
         }
         else if (scanline == 241) {
             if (scanlineCycle == 1) {
-                m_flags.vBlank = true;
+                m_registers.ppuStatus |= 0x80; // set vblank flag
                 m_controller->sendVBlankNMI();
             }
         }
 
         m_currentCycle++;
+    }
+
+    void PPU::loadSprites() {
+        for (size_t i = 0; i < SPRITE_COUNT; i++) {
+            const Sprite s = {
+                .x          = m_oam[4*i + 3],
+                .y          = m_oam[4*i + 0],
+                .tileIndex  = m_oam[4*i + 1],
+                .attributes = m_oam[4*i + 2],
+            };
+            m_sprites[i] = s;
+        }
     }
 
     uint8_t PPU::getTileIndex(size_t t_coarseXScroll, size_t t_coarseYScroll) {
@@ -273,9 +211,10 @@ namespace RNES::PPU {
         return m_controller->readWord(nametableAddress + nametableIndex);
     }
 
-    uint8_t PPU::getPaletteIndex(size_t t_tileIndex, size_t t_tileX, size_t t_tileY) {
-        const size_t paletteIndexLowBit = (m_controller->readWord(0x1000 + 16 * t_tileIndex + t_tileY) >> (7 - t_tileX)) & 1; // TODO: change the base address
-        const size_t paletteIndexHighBit = (m_controller->readWord(0x1000 + 16 * t_tileIndex + t_tileY + 8) >> (7 - t_tileX)) & 1;
+    uint8_t PPU::getPaletteIndex(size_t t_baseAddress, size_t t_tileIndex, size_t t_tileX, size_t t_tileY) {
+        const size_t tileAddress = t_baseAddress + 16 * t_tileIndex + t_tileY;
+        const size_t paletteIndexLowBit  = (m_controller->readWord(tileAddress + 0) >> (7 - t_tileX)) & 1;
+        const size_t paletteIndexHighBit = (m_controller->readWord(tileAddress + 8) >> (7 - t_tileX)) & 1;
         return (paletteIndexHighBit << 1) | (paletteIndexLowBit << 0);
     }
 
@@ -302,6 +241,84 @@ namespace RNES::PPU {
         }
         else {
             return PALETTE_MAP[m_controller->readWord(0x3F00)];
+        }
+    }
+
+    PPU::SpritePixelData PPU::findTopSpritePixelData(size_t t_x, size_t t_y) {
+        // TODO: handle 8x16 sprites
+        SpritePixelData topSprite = { SPRITE_COUNT, 0 };
+
+        for (size_t i = 0; i < SPRITE_COUNT; i++) {
+            if (m_sprites[i].contains(t_x, t_y)) {
+                const size_t localX = t_x - m_sprites[i].x;
+                const size_t localY = t_y - m_sprites[i].y;
+                ASSERT(localX < 8, "");
+                ASSERT(localY < 8, "");
+
+                const size_t realLocalX = (m_sprites[i].attributes & 0x40) ? (7 - localX) : (localX);
+                const size_t realLocalY = (m_sprites[i].attributes & 0x80) ? (7 - localY) : (localY);
+                ASSERT(realLocalX < 8, "");
+                ASSERT(realLocalY < 8, "");
+
+                const size_t nametableAddress = (m_registers.ppuCtrl & 0x08) ? 0x1000 : 0x0000;
+                const size_t paletteIndex = getPaletteIndex(nametableAddress, m_sprites[i].tileIndex, realLocalX, realLocalY);
+                if (paletteIndex != 0) {
+                    topSprite.spriteIndex = i;
+                    topSprite.paletteIndex = paletteIndex;
+                    break;
+                }
+            }
+        }
+
+        return topSprite;
+    }
+
+    void PPU::incrementScroll(size_t t_scanline, size_t t_scanlineCycle) {
+        uint16_t& v = m_registers.v;
+        uint16_t& t = m_registers.t;
+
+        // Increment coarse X scroll
+        if (t_scanlineCycle % 8 == 0 && t_scanlineCycle != 0) {
+            if ((v & 0x1F) == 31) {
+                v &= ~0x001F; // set coarse x to 0
+                v ^= 0x0400; // switch horizontal nametable
+            }
+            else {
+                v++; // Increment coarse x (last 5 bits <= 30 so if we add 1 we at most get 31 which doesn't overflow into the next bits)
+            }
+        }
+
+        if (m_flags.render) {
+            // Increment Y scroll on cycle 256
+            if (t_scanlineCycle == 256) {
+                // Taken from https://wiki.nesdev.com/w/index.php?title=PPU_scrolling
+                if ((v & 0x7000) != 0x7000) {
+                    v += 0x1000; // increment fine Y scroll
+                }
+                else {
+                    v &= ~0x7000; // set fine Y to 0
+                    int y = (v & 0x03E0) >> 5; // let y = coarse Y
+
+                    if (y == 29) {
+                        y = 0; // set coarse Y to 0
+                        v ^= 0x0800; // switch vertical nametable
+                    }
+                    else if (y == 31) {
+                        y = 0; // set coarse Y to 0
+                    }
+                    else {
+                        y++; // increment coarse Y
+                    }
+                    v = (v & ~0x03E0) | (y << 5); // put coarse Y back into v
+                }
+            }
+            else if (t_scanlineCycle == 257) {
+                v = (v & 0xFBE0) | (t & ~0xFBE0); // copy X scroll from t to v
+            }
+
+            if (t_scanline == 261 && (280 <= t_scanlineCycle && t_scanlineCycle <= 304)) {
+                v = (v & 0x841F) | (t & ~0x841F); // copy horizontal bits from t to v
+            }
         }
     }
 
@@ -341,9 +358,11 @@ namespace RNES::PPU {
     }
 
     void PPU::writeOAMData(uint8_t t_value) {
-        // TODO: check if rendering before writing
-        m_oam[m_registers.oamAddr] = t_value;
-        m_registers.oamAddr++;
+        // Only allow writes during vBlank
+        if (m_registers.ppuStatus & 0x80) {
+            m_oam[m_registers.oamAddr] = t_value;
+            m_registers.oamAddr++;
+        }
     }
 
     void PPU::writePPUScroll(uint8_t t_value) {

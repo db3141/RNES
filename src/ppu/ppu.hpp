@@ -45,7 +45,6 @@ namespace RNES::PPU {
         std::unique_ptr<PPUController> m_controller;
 
         struct {
-            bool vBlank;
             bool render;
         } m_flags;
 
@@ -84,17 +83,29 @@ namespace RNES::PPU {
             uint8_t attributes;
 
             bool contains(size_t t_x, size_t t_y) {
-                return ((x <= t_x) && (t_x < x + 8)) && ((y <= t_y) && (t_y < y + 8));
+                return  ((x <= t_x) && (t_x < x + 8U)) &&
+                        ((y <= t_y) && (t_y < y + 8U));
             }
         };
         std::array<Sprite, SPRITE_COUNT> m_sprites;
 
         SurfaceWrapper m_outputSurface;
 
+        //----- Helpers -----//
+        void loadSprites();
+
         uint8_t getTileIndex(size_t t_coarseXScroll, size_t t_coarseYScroll);
-        uint8_t getPaletteIndex(size_t t_tileIndex, size_t t_tileX, size_t t_tileY);
+        uint8_t getPaletteIndex(size_t t_baseAddress, size_t t_tileIndex, size_t t_tileX, size_t t_tileY);
         size_t getPalette(size_t t_x, size_t t_y);
         RGBAPixel getColour(size_t t_palette, size_t t_paletteIndex);
+
+        struct SpritePixelData {
+            size_t spriteIndex;
+            size_t paletteIndex;
+        };
+        SpritePixelData findTopSpritePixelData(size_t t_x, size_t t_y);
+
+        void incrementScroll(size_t t_scanline, size_t t_scanlineCycle);
     };
 
 }
