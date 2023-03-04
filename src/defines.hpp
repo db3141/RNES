@@ -2,6 +2,7 @@
 #define RNES_DEFINES_INCLUDED
 
 #include <stddef.h>
+#include <stdint.h>
 
 namespace RNES {
 

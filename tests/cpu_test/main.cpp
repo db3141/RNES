@@ -1,6 +1,6 @@
+#include "controller.hpp"
 #include "cpu/cpu.hpp"
 #include "cpu/cpu_debugger.hpp"
-#include "cpu_test_controller.hpp"
 
 #include <iostream>
 

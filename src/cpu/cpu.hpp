@@ -1,10 +1,11 @@
 #ifndef RNES_CPU_6502_INCLUDED
 #define RNES_CPU_6502_INCLUDED
 
-#include <variant>
-#include <set>
-#include <memory>
+#include <array>
 #include <initializer_list>
+#include <memory>
+#include <set>
+#include <variant>
 
 #include "cpu_controller.hpp"
 #include "defines.hpp"
@@ -38,72 +39,73 @@ namespace RNES::CPU {
     static const size_t ADDRESS_MODE_COUNT = 13;
 
     enum class InstructionId : size_t {
-        ADC = 0,
-        AND = 1,
-        ASL = 2,
-        BCC = 3,
-        BCS = 4,
-        BEQ = 5,
-        BIT = 6,
-        BMI = 7,
-        BNE = 8,
-        BPL = 9,
-        BRK = 10,
-        BVC = 11,
-        BVS = 12,
-        CLC = 13,
-        CLD = 14,
-        CLI = 15,
-        CLV = 16,
-        CMP = 17,
-        CPX = 18,
-        CPY = 19,
-        DEC = 20,
-        DEX = 21,
-        DEY = 22,
-        EOR = 23,
-        INC = 24,
-        INX = 25,
-        INY = 26,
-        JMP = 27,
-        JSR = 28,
-        LDA = 29,
-        LDX = 30,
-        LDY = 31,
-        LSR = 32,
-        NOP = 33,
-        ORA = 34,
-        PHA = 35,
-        PHP = 36,
-        PLA = 37,
-        PLP = 38,
-        ROL = 39,
-        ROR = 40,
-        RTI = 41,
-        RTS = 42,
-        SBC = 43,
-        SEC = 44,
-        SED = 45,
-        SEI = 46,
-        STA = 47,
-        STX = 48,
-        STY = 49,
-        TAX = 50,
-        TAY = 51,
-        TSX = 52,
-        TXA = 53,
-        TXS = 54,
-        TYA = 55,
-        NONE = 56
+        ADC,
+        AND,
+        ASL,
+        BCC,
+        BCS,
+        BEQ,
+        BIT,
+        BMI,
+        BNE,
+        BPL,
+        BRK,
+        BVC,
+        BVS,
+        CLC,
+        CLD,
+        CLI,
+        CLV,
+        CMP,
+        CPX,
+        CPY,
+        DEC,
+        DEX,
+        DEY,
+        EOR,
+        INC,
+        INX,
+        INY,
+        JMP,
+        JSR,
+        LDA,
+        LDX,
+        LDY,
+        LSR,
+        NOP,
+        ORA,
+        PHA,
+        PHP,
+        PLA,
+        PLP,
+        ROL,
+        ROR,
+        RTI,
+        RTS,
+        SBC,
+        SEC,
+        SED,
+        SEI,
+        STA,
+        STX,
+        STY,
+        TAX,
+        TAY,
+        TSX,
+        TXA,
+        TXS,
+        TYA,
+
+        NONE
     };
-    static const size_t INSTRUCTION_COUNT = static_cast<size_t>(InstructionId::NONE);
+    constexpr size_t INSTRUCTION_COUNT = static_cast<size_t>(InstructionId::NONE);
 
     struct InstructionInfo {
         InstructionId id;
         AddressMode addressMode;
     };
 
-    static const std::array<InstructionInfo, 256> INSTRUCTION_TABLE = {{
+    constexpr std::array<InstructionInfo, 256> INSTRUCTION_TABLE {{
         { InstructionId::BRK,   AddressMode::IMPLICIT },         /* 0x00 */
         { InstructionId::ORA,   AddressMode::INDEXED_INDIRECT }, /* 0x01 */
         { InstructionId::NONE,  AddressMode::NONE },             /* 0x02 */

@@ -1,7 +1,7 @@
 #include <fstream>
 
 #include "assert.hpp"
-#include "ppu_test_controller.hpp"
+#include "controller.hpp"
 
 namespace RNES {
 

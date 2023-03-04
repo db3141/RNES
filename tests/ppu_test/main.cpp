@@ -1,7 +1,7 @@
 #include <iostream>
 
+#include "controller.hpp"
 #include "ppu/ppu.hpp"
-#include "ppu_test_controller.hpp"
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {

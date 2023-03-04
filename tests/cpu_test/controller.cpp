@@ -1,7 +1,7 @@
 #include <fstream>
 
 #include "assert.hpp"
-#include "cpu_test_controller.hpp"
+#include "controller.hpp"
 
 namespace RNES::Test {
 
