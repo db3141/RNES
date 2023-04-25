@@ -3,11 +3,11 @@
 
 #include "defines.hpp"
 
-namespace RNES {
+namespace RNES::PPU {
 
     class PPUController {
     public:
-        virtual ~PPUController() {}
+        virtual ~PPUController() = default;
 
         virtual Word readWord(Address t_address) = 0;
         virtual void writeWord(Address t_address, Word t_value) = 0; 

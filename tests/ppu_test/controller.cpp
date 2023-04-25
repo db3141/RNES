@@ -3,7 +3,7 @@
 #include "assert.hpp"
 #include "controller.hpp"
 
-namespace RNES {
+namespace RNES::PPU {
 
     PPUTestController::PPUTestController() : m_memory() {
         ;
@@ -11,7 +11,7 @@ namespace RNES {
 
     PPUTestController::PPUTestController(const char* t_file) : m_memory() {
         std::ifstream fileStream(t_file, std::ios::binary | std::ios::in);
-        ASSERT(fileStream.is_open(), "Couldn't find file");
+        ASSERT(fileStream.is_open(), "Could not open file");
         fileStream.read(reinterpret_cast<char*>(m_memory.data()), PPU_ADDRESS_SPACE_SIZE);
     }
 

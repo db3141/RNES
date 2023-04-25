@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    auto ppuController = std::make_unique<RNES::PPUTestController>(argv[1]);
+    auto ppuController = std::make_unique<RNES::PPU::PPUTestController>(argv[1]);
     RNES::PPU::PPU ppu(argv[2]);
     ppu.setController(std::move(ppuController));
 
@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
         ppu.cycle();
     }
     SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, ppu.getScreenOutput());
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderCopy(renderer, texture, nullptr, nullptr);
     SDL_RenderPresent(renderer);
     SDL_DestroyTexture(texture);
 
