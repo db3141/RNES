@@ -80,9 +80,13 @@ namespace RNES::PPU {
         { 0x0, 0x0, 0x0, 0xff }
     }};
 
-    PPU::PPU()
-        : m_oam()
-        , m_controller(nullptr)
+    PPU::PPU(std::unique_ptr<PPUController> t_controller) : PPU(std::move(t_controller), {0}) {
+
+    }
+
+    PPU::PPU(std::unique_ptr<PPUController> t_controller, std::array<Word, OAM_SIZE> t_oam)
+        : m_oam(t_oam)
+        , m_controller(std::move(t_controller))
 
         , m_flags({ true })
         , m_registers({ 0x10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
@@ -90,22 +94,15 @@ namespace RNES::PPU {
         , m_lastUpdatedCycle(0)
         , m_currentCycle(0)
 
+        , m_sprites()
         , m_outputSurface(OUTPUT_WIDTH, OUTPUT_HEIGHT)
     {
-        ;
+
     }
 
-    PPU::PPU(const char* t_oamFile) : PPU() {
-        std::ifstream fileStream(t_oamFile, std::ios::in | std::ios::binary);
-        ASSERT(fileStream.is_open(), "Failed to open");
-        fileStream.read(reinterpret_cast<char*>(m_oam.data()), OAM_SIZE);
-    }
+    CycleInfo PPU::cycle() {
+        CycleInfo cycleInfo{false};
 
-    void PPU::setController(std::unique_ptr<PPUController> t_controller) {
-        m_controller = std::move(t_controller);
-    }
-
-    void PPU::cycle() {
         const size_t scanline = m_currentCycle / 342;
         const size_t scanlineCycle = m_currentCycle % 342;
 
@@ -185,11 +182,12 @@ namespace RNES::PPU {
         else if (scanline == 241) {
             if (scanlineCycle == 1) {
                 m_registers.ppuStatus |= 0x80; // set vblank flag
-                m_controller->sendVBlankNMI();
+                cycleInfo.nmi = true;
             }
         }
 
         m_currentCycle++;
+        return cycleInfo;
     }
 
     void PPU::loadSprites() {

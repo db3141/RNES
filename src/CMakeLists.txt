@@ -20,7 +20,7 @@ add_library(core STATIC
 
         mapper/mapper.hpp
         mapper/mapper.cpp
-        mapper/mapper_0.cpp)
+        mapper/mapper0.cpp ppu/ppu_controller.cpp ppu/chr_map.hpp mapper/mapper0.hpp)
 
 # Use C++ 20 and disable extensions
 target_compile_features(core PUBLIC cxx_std_20)

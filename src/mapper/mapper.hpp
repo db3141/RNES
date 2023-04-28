@@ -20,7 +20,7 @@ namespace RNES::Mapper {
         ERROR_FAILED_TO_OPEN_FILE,
     };
 
-    ErrorOr<Mapper> parseMapperFromINES(const char* t_filePath);
+    Mapper parseMapperFromINES(const char* t_filePath);
 
 }
 

@@ -1,18 +1,26 @@
 #ifndef RNES_PPU_CONTROLLER_INCLUDED
 #define RNES_PPU_CONTROLLER_INCLUDED
 
+#include <array>
+#include <memory>
+
 #include "defines.hpp"
+#include "ppu/chr_map.hpp"
 
 namespace RNES::PPU {
 
     class PPUController {
     public:
-        virtual ~PPUController() = default;
+        explicit PPUController(std::unique_ptr<CHRMap> t_chrMap);
+        PPUController(std::unique_ptr<CHRMap> t_chrMap, std::array<Word, 0x1000> t_internalVRam, std::array<Word, 0x20> t_paletteRamIndexes);
 
-        virtual Word readWord(Address t_address) = 0;
-        virtual void writeWord(Address t_address, Word t_value) = 0; 
+        Word readWord(Address t_address);
+        void writeWord(Address t_address, Word t_value);
 
-        virtual void sendVBlankNMI() = 0;
+    private:
+        std::array<Word, 0x1000> m_internalVRam;
+        std::array<Word, 0x20> m_paletteRamIndexes;
+        std::unique_ptr<CHRMap> m_chrMap;
     };
 
 }

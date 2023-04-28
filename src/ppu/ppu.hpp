@@ -16,12 +16,16 @@ namespace RNES::PPU {
     static const size_t OUTPUT_WIDTH = 256;
     static const size_t OUTPUT_HEIGHT = 240;
 
+    struct CycleInfo {
+        bool nmi;
+    };
+
     class PPU {
     public:
-        PPU();
-        explicit PPU(const char* t_oamFile); // TODO: remove this once we can read ROMs
+        explicit PPU(std::unique_ptr<PPUController> t_controller);
+        PPU(std::unique_ptr<PPUController> t_controller, std::array<Word, OAM_SIZE> t_oam);
 
-        void cycle();
+        CycleInfo cycle();
 
         uint8_t readPPUStatus();
         uint8_t readOAMData();
@@ -36,8 +40,6 @@ namespace RNES::PPU {
         void writePPUData(uint8_t t_value);
 
         void writeOAMByte(uint8_t t_index, uint8_t t_value);
-
-        void setController(std::unique_ptr<PPUController> t_controller);
 
         [[nodiscard]] SDL_Surface* getScreenOutput();
     private:
@@ -87,7 +89,7 @@ namespace RNES::PPU {
                         ((y <= t_y) && (t_y < y + 8U));
             }
         };
-        std::array<Sprite, SPRITE_COUNT> m_sprites;
+        std::array<Sprite, SPRITE_COUNT> m_sprites{};
 
         SurfaceWrapper m_outputSurface;
 

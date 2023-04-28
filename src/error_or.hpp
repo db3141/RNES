@@ -38,6 +38,10 @@ public:
         return std::holds_alternative<ErrorCode>(m_value);
     }
 
+    [[nodiscard]] Ty& get_value() {
+        return std::get<Ty>(m_value);
+    }
+
     [[nodiscard]] Ty get_value() const {
         return std::get<Ty>(m_value);
     }

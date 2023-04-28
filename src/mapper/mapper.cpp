@@ -5,9 +5,11 @@
 #include <utility>
 #include <vector>
 
+#include "assert.hpp"
 #include "defines.hpp"
 #include "error_or.hpp"
 #include "mapper.hpp"
+#include "mapper0.hpp"
 
 namespace RNES::Mapper {
 
@@ -21,49 +23,43 @@ namespace RNES::Mapper {
 
         template<typename T>
         ErrorOr<T> read() {
-            if (m_index + sizeof(T) - 1 < m_data.size()) {
-                T result = 0;
-                for (size_t i = 0; i < sizeof(T); i++) {
-                    result |= m_data[m_index + i] << (sizeof(char) * i);
-                }
-
-                return result;
-            } else {
-                return ErrorCode(ERROR_INDEX_OUT_OF_RANGE);
+            REQUIRE(m_index + sizeof(T) <= m_data.size(), ERROR_INDEX_OUT_OF_RANGE);
+            T result = 0;
+            for (size_t i = 0; i < sizeof(T); i++) {
+                result |= m_data[m_index + i] << (sizeof(char) * i);
             }
+
+            m_index += sizeof(T);
+            return result;
         }
 
         template<size_t N>
         ErrorOr<std::array<uint8_t, N>> readBytes() {
-            if (m_index + N <= m_data.size()) {
-                std::array<uint8_t, N> result{};
+            REQUIRE(m_index + N <= m_data.size(), ERROR_INDEX_OUT_OF_RANGE);
+            std::array<uint8_t, N> result{};
 
-                for (size_t i = 0; i < N; i++) {
-                    result[i] = m_data[m_index + i];
-                }
-
-                return result;
-            } else {
-                return ErrorCode(ERROR_INDEX_OUT_OF_RANGE);
+            for (size_t i = 0; i < N; i++) {
+                result[i] = m_data[m_index + i];
             }
+
+            m_index += N;
+            return result;
         }
 
         ErrorOr<std::vector<uint8_t>> readBytes(size_t t_count) {
-            if (m_index + t_count <= m_data.size()) {
-                std::vector<uint8_t> result(t_count, 0);
+            REQUIRE(m_index + t_count <= m_data.size(), ERROR_INDEX_OUT_OF_RANGE);
+            std::vector<uint8_t> result(t_count, 0);
 
-                for (size_t i = 0; i < t_count; i++) {
-                    result[i] = m_data[m_index + i];
-                }
-
-                return result;
-            } else {
-                return ErrorCode(ERROR_INDEX_OUT_OF_RANGE);
+            for (size_t i = 0; i < t_count; i++) {
+                result[i] = m_data[m_index + i];
             }
+
+            m_index += t_count;
+            return result;
         }
 
         ErrorOr<std::vector<uint8_t>> readRest() {
-            return readBytes(m_data.size() - m_index - 1);
+            return readBytes(m_data.size() - m_index);
         }
 
         void skip(size_t t_amount) {
@@ -162,6 +158,7 @@ namespace RNES::Mapper {
 
         header.defaultExpansionDevice = flags[15] & 0x3F;
 
+        /*
         std::cout << "Mirroring Type: " << static_cast<int>(header.mirroringType) << '\n';
         std::cout << "Has Battery: " << header.hasBattery << '\n';
         std::cout << "Has Trainer: " << header.hasTrainer << '\n';
@@ -187,19 +184,21 @@ namespace RNES::Mapper {
         std::cout << "# Miscellaneous ROMS: " << header.noMiscellaneousRoms << '\n';
 
         std::cout << "Default Expansion Device: " << header.defaultExpansionDevice << '\n';
+         //*/
 
         return header;
     }
 
-    ErrorOr<Mapper> parseMapperFromINES(const char *t_filePath) {
-        const std::vector<uint8_t> fileData = TRY(readFile(t_filePath));
+    // TODO: change return type back to ErrorOr<Mapper>
+    Mapper parseMapperFromINES(const char *t_filePath) {
+        const std::vector<uint8_t> fileData = readFile(t_filePath).get_value();
         BinaryParser parser{fileData};
 
-        INESHeader header = TRY(parseINESHeader(parser));
+        INESHeader header = parseINESHeader(parser).get_value();
 
         std::array<uint8_t, 512> trainerArea{};
         if (header.hasTrainer) {
-            trainerArea = TRY(parser.readBytes<512>());
+            trainerArea = parser.readBytes<512>().get_value();
         }
 
         // TODO: check this works with VS system stuff
@@ -209,10 +208,9 @@ namespace RNES::Mapper {
             const size_t exponent = header.prgRomSize & 0xFC;
             const size_t trueSize = (1 << exponent) * (2 * multiplier + 1);
 
-            prgRom = TRY(parser.readBytes(trueSize));
+            prgRom = parser.readBytes(trueSize).get_value();
         } else {
-            std::cout << header.prgRomSize * 16384 << "b\n";
-            prgRom = TRY(parser.readBytes(header.prgRomSize * 16384));
+            prgRom = parser.readBytes(header.prgRomSize * 0x4000).get_value();
         }
 
         std::vector<uint8_t> chrRom{};
@@ -221,14 +219,18 @@ namespace RNES::Mapper {
             const size_t exponent = header.chrRomSize & 0xFC;
             const size_t trueSize = (1 << exponent) * (2 * multiplier + 1);
 
-            chrRom = TRY(parser.readBytes(trueSize));
+            chrRom = parser.readBytes(trueSize).get_value();
         } else {
-            chrRom = TRY(parser.readBytes(header.chrRomSize * 8192));
+            chrRom = parser.readBytes(header.chrRomSize * 8192).get_value();
         }
 
-        std::vector<uint8_t> miscRom = TRY(parser.readRest());
+        std::vector<uint8_t> miscRom = parser.readRest().get_value();
 
-        return ErrorCode(-1);
+        if (header.mapperNumber == 0) {
+            return createMapper0(prgRom, chrRom);
+        }
+
+        ASSERT(false, ":(");
     }
 
     ErrorOr<std::vector<uint8_t>> readFile(const char *t_filePath) {
