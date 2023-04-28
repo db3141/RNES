@@ -19,7 +19,7 @@ namespace RNES::PPU {
     class PPU {
     public:
         PPU();
-        PPU(const char* t_oamFile);
+        explicit PPU(const char* t_oamFile); // TODO: remove this once we can read ROMs
 
         void cycle();
 
@@ -82,7 +82,7 @@ namespace RNES::PPU {
             uint8_t tileIndex;
             uint8_t attributes;
 
-            bool contains(size_t t_x, size_t t_y) {
+            [[nodiscard]] bool contains(size_t t_x, size_t t_y) const {
                 return  ((x <= t_x) && (t_x < x + 8U)) &&
                         ((y <= t_y) && (t_y < y + 8U));
             }

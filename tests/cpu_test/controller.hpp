@@ -10,13 +10,10 @@ namespace RNES::Test {
     class CPUTestController : public CPU::CPUController {
     public:
         CPUTestController();
-        CPUTestController(const char* t_path);
+        explicit CPUTestController(const char* t_path);
 
-        Word readWord(Address t_address) const override;
+        [[nodiscard]] Word readWord(Address t_address) const override;
         void writeWord(Address t_address, Word t_value) override;
-
-        DWord readDWord(Address t_address) const override;
-        void writeDWord(Address t_address, DWord t_value) override;
 
     private:
         std::array<Word, CPU::ADDRESS_SPACE_SIZE> m_memory;

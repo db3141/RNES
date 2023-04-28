@@ -7,7 +7,7 @@
 
 namespace RNES::PPU {
 
-    static const size_t PPU_ADDRESS_SPACE_SIZE = 0x4000;
+    constexpr size_t PPU_ADDRESS_SPACE_SIZE = 0x4000;
 
     class PPUTestController : public PPUController {
     public:

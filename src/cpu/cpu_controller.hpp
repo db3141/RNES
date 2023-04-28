@@ -14,13 +14,16 @@ namespace RNES::CPU {
 
     class CPUController {
     public:
-        virtual ~CPUController() {}
+        virtual ~CPUController() = default;
 
-        virtual Word readWord(Address t_address) const = 0;
+        [[nodiscard]] virtual Word readWord(Address t_address) const = 0;
         virtual void writeWord(Address t_address, Word t_value) = 0;
 
-        virtual DWord readDWord(Address t_address) const = 0;
-        virtual void writeDWord(Address t_address, DWord t_value) = 0;
+        [[nodiscard]] virtual DWord readDWord(Address t_address) const {
+            return
+                this->readWord(t_address + 0) << 0 |
+                this->readWord(t_address + 1) << 8;
+        }
     };
 
 }
