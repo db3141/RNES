@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "defines.hpp"
-#include "ppu_controller.hpp"
+#include "ppu_memory_map.hpp"
 #include "surface_wrapper.hpp"
 
 namespace RNES::PPU {
@@ -22,8 +22,8 @@ namespace RNES::PPU {
 
     class PPU {
     public:
-        explicit PPU(std::unique_ptr<PPUController> t_controller);
-        PPU(std::unique_ptr<PPUController> t_controller, std::array<Word, OAM_SIZE> t_oam);
+        explicit PPU(std::unique_ptr<PPUMemoryMap> t_controller);
+        PPU(std::unique_ptr<PPUMemoryMap> t_controller, std::array<Word, OAM_SIZE> t_oam);
 
         CycleInfo cycle();
 
@@ -44,7 +44,7 @@ namespace RNES::PPU {
         [[nodiscard]] SDL_Surface* getScreenOutput();
     private:
         std::array<Word, OAM_SIZE> m_oam;
-        std::unique_ptr<PPUController> m_controller;
+        std::unique_ptr<PPUMemoryMap> m_controller;
 
         struct {
             bool render;

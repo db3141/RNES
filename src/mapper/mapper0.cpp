@@ -1,7 +1,7 @@
 #include "assert.hpp"
 #include "mapper.hpp"
 #include "mapper0.hpp"
-#include "ppu/ppu_controller.hpp"
+#include "ppu/ppu_memory_map.hpp"
 
 #include <array>
 #include <utility>
@@ -55,7 +55,7 @@ namespace RNES::Mapper {
         Mapper result{};
 
         result.cpuController = std::make_unique<CPUMapper0>(std::move(t_prgRom));
-        result.ppuController = std::make_unique<PPU::PPUController>(std::make_unique<CHRMapper0>(chrRom));
+        result.ppuController = std::make_unique<PPU::PPUMemoryMap>(std::make_unique<CHRMapper0>(chrRom));
 
         return result;
     }

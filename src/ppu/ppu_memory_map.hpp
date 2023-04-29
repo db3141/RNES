@@ -9,10 +9,10 @@
 
 namespace RNES::PPU {
 
-    class PPUController {
+    class PPUMemoryMap {
     public:
-        explicit PPUController(std::unique_ptr<CHRMap> t_chrMap);
-        PPUController(std::unique_ptr<CHRMap> t_chrMap, std::array<Word, 0x1000> t_internalVRam, std::array<Word, 0x20> t_paletteRamIndexes);
+        explicit PPUMemoryMap(std::unique_ptr<CHRMap> t_chrMap);
+        PPUMemoryMap(std::unique_ptr<CHRMap> t_chrMap, std::array<Word, 0x1000> t_internalVRam, std::array<Word, 0x20> t_paletteRamIndexes);
 
         Word readWord(Address t_address);
         void writeWord(Address t_address, Word t_value);

@@ -5,13 +5,13 @@
 #include <memory>
 
 #include "defines.hpp"
-#include "cpu/cpu_controller.hpp"
+#include "cpu/cpu_memory_map.hpp"
 
 namespace RNES {
 
-    class NESController : public CPU::CPUController {
+    class NESController : public CPU::CPUMemoryMap {
     public:
-        explicit NESController(std::unique_ptr<CPU::CPUController> t_cpuMapper);
+        explicit NESController(std::unique_ptr<CPU::CPUMemoryMap> t_cpuMapper);
         ~NESController() override = default;
 
         [[nodiscard]] Word readWord(Address t_address) const override;
@@ -19,7 +19,7 @@ namespace RNES {
 
     private:
         std::array<Word, 0x0800> m_internalRAM;
-        std::unique_ptr<CPU::CPUController> m_cpuMapper;
+        std::unique_ptr<CPU::CPUMemoryMap> m_cpuMapper;
     };
 
 }

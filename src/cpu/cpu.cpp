@@ -30,7 +30,7 @@ namespace RNES::CPU {
         ;
     }
 
-    void CPU::setController(std::unique_ptr<CPUController> t_controller) {
+    void CPU::setController(std::unique_ptr<CPUMemoryMap> t_controller) {
         m_controller = std::move(t_controller);
     }
 

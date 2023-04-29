@@ -7,7 +7,7 @@
 #include <set>
 #include <variant>
 
-#include "cpu_controller.hpp"
+#include "cpu_memory_map.hpp"
 #include "defines.hpp"
 
 namespace RNES::CPU {
@@ -399,7 +399,7 @@ namespace RNES::CPU {
 
         CPU(Address t_programCounter=0x0000U);
 
-        void setController(std::unique_ptr<CPUController> t_controller);
+        void setController(std::unique_ptr<CPUMemoryMap> t_controller);
 
         bool executeInstruction();
         void cycle();
@@ -439,7 +439,7 @@ namespace RNES::CPU {
         };
 
         //----- Members -----//
-        std::unique_ptr<CPUController> m_controller;
+        std::unique_ptr<CPUMemoryMap> m_controller;
 
         Address m_pc;
         Word m_sp;

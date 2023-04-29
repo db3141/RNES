@@ -3,11 +3,11 @@
 
 #include <array>
 
-#include "cpu/cpu_controller.hpp"
+#include "cpu/cpu_memory_map.hpp"
 
 namespace RNES::Test {
 
-    class CPUTestController : public CPU::CPUController {
+    class CPUTestController : public CPU::CPUMemoryMap {
     public:
         CPUTestController();
         explicit CPUTestController(const char* t_path);

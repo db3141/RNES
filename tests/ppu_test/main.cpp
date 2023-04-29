@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
     }
 
     auto chrMap = std::make_unique<RNES::PPU::TestCHRMap>();
-    auto ppuController = std::make_unique<RNES::PPU::PPUController>(std::move(chrMap));
+    auto ppuController = std::make_unique<RNES::PPU::PPUMemoryMap>(std::move(chrMap));
 
     for (size_t i = 0; i < 0x4000; i++) {
         ppuController->writeWord(i, ppuDump[i]);

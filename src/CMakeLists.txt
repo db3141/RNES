@@ -4,7 +4,7 @@ add_library(core STATIC
         error_or.hpp
 
         cpu/cpu.hpp
-        cpu/cpu_controller.hpp
+        cpu/cpu_memory_map.hpp
         cpu/cpu_debugger.hpp
         cpu/cpu.cpp
         cpu/cpu_debugger.cpp
@@ -12,15 +12,20 @@ add_library(core STATIC
         cpu/nes_controller.hpp
         cpu/nes_controller.cpp
 
-        ppu/ppu_controller.hpp
+
+        ppu/ppu_memory_map.hpp
         ppu/ppu.hpp
         ppu/surface_wrapper.hpp
         ppu/ppu.cpp
         ppu/surface_wrapper.cpp
+        ppu/ppu_memory_map.cpp
+        ppu/chr_map.hpp
 
         mapper/mapper.hpp
         mapper/mapper.cpp
-        mapper/mapper0.cpp ppu/ppu_controller.cpp ppu/chr_map.hpp mapper/mapper0.hpp)
+        mapper/mapper0.hpp
+        mapper/mapper0.cpp
+        )
 
 # Use C++ 20 and disable extensions
 target_compile_features(core PUBLIC cxx_std_20)

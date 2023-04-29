@@ -4,14 +4,14 @@
 #include <memory>
 
 #include "error_or.hpp"
-#include "cpu/cpu_controller.hpp"
-#include "ppu/ppu_controller.hpp"
+#include "cpu/cpu_memory_map.hpp"
+#include "ppu/ppu_memory_map.hpp"
 
 namespace RNES::Mapper {
 
     struct Mapper {
-        std::unique_ptr<CPU::CPUController> cpuController;
-        std::unique_ptr<PPU::PPUController> ppuController;
+        std::unique_ptr<CPU::CPUMemoryMap> cpuController;
+        std::unique_ptr<PPU::PPUMemoryMap> ppuController;
     };
 
     enum Error {

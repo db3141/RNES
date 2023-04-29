@@ -80,11 +80,11 @@ namespace RNES::PPU {
         { 0x0, 0x0, 0x0, 0xff }
     }};
 
-    PPU::PPU(std::unique_ptr<PPUController> t_controller) : PPU(std::move(t_controller), {0}) {
+    PPU::PPU(std::unique_ptr<PPUMemoryMap> t_controller) : PPU(std::move(t_controller), {0}) {
 
     }
 
-    PPU::PPU(std::unique_ptr<PPUController> t_controller, std::array<Word, OAM_SIZE> t_oam)
+    PPU::PPU(std::unique_ptr<PPUMemoryMap> t_controller, std::array<Word, OAM_SIZE> t_oam)
         : m_oam(t_oam)
         , m_controller(std::move(t_controller))
 

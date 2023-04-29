@@ -12,9 +12,9 @@ namespace RNES::CPU {
 
     const size_t ADDRESS_SPACE_SIZE = 1ULL << (8ULL * sizeof(Address));
 
-    class CPUController {
+    class CPUMemoryMap {
     public:
-        virtual ~CPUController() = default;
+        virtual ~CPUMemoryMap() = default;
 
         [[nodiscard]] virtual Word readWord(Address t_address) const = 0;
         virtual void writeWord(Address t_address, Word t_value) = 0;

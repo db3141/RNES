@@ -9,7 +9,7 @@
 
 namespace RNES::Mapper {
 
-    class CPUMapper0 : public CPU::CPUController {
+    class CPUMapper0 : public CPU::CPUMemoryMap {
     public:
         explicit CPUMapper0(std::vector<uint8_t> t_prgRom);
         ~CPUMapper0() override = default;
